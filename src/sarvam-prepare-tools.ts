@@ -39,7 +39,7 @@ export function prepareTools({
 
   const toolChoice = mode.toolChoice;
 
-  const groqTools: Array<{
+  const sarvamTools: Array<{
     type: 'function';
     function: {
       name: string;
@@ -52,7 +52,7 @@ export function prepareTools({
     if (tool.type === 'provider-defined') {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
-      groqTools.push({
+      sarvamTools.push({
         type: 'function',
         function: {
           name: tool.name,
@@ -64,7 +64,7 @@ export function prepareTools({
   }
 
   if (toolChoice == null) {
-    return { tools: groqTools, tool_choice: undefined, toolWarnings };
+    return { tools: sarvamTools, tool_choice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -73,10 +73,10 @@ export function prepareTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: groqTools, tool_choice: type, toolWarnings };
+      return { tools: sarvamTools, tool_choice: type, toolWarnings };
     case 'tool':
       return {
-        tools: groqTools,
+        tools: sarvamTools,
         tool_choice: {
           type: 'function',
           function: {

@@ -1,3 +1,5 @@
+import { SarvamTranscriptionLanguageCode, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
+
 export type SarvamChatPrompt = Array<SarvamMessage>;
 
 export type SarvamMessage =
@@ -49,51 +51,39 @@ export interface SarvamToolMessage {
     tool_call_id: string;
 }
 
-export interface SarvamTranscriptionAPITypes {
-    /**
-     * The audio file object for direct upload to translate/transcribe.
-     * Required unless using url instead.
-     */
-    file?: string;
+export type SarvamTranscriptionAPITypes = {
+  /**
+   * Specifies the model to use for speech-to-text conversion.
+   * @default 'saarika:v2'
+   */
+  model?: SarvamTranscriptionModelId;
 
-    /**
-     * The audio URL to translate/transcribe (supports Base64URL).
-     * Required unless using file instead.
-     */
-    url?: string;
+  /**
+   * Specifies the language of the input audio.
+   * Required for the 'saarika:v1' model. Optional for 'saarika:v2'.
+   * 'unknown' lets the API detect the language automatically (not supported by 'saarika:v1').
+   */
+    language_code?: SarvamTranscriptionLanguageCode;
 
-    /**
-     * The language of the input audio. Supplying the input language in ISO-639-1 (i.e. en, tr`) format will improve accuracy and latency.
-     * The translations endpoint only supports 'en' as a parameter option.
-     */
-    language?: string;
+  /**
+   * Enables timestamps in the response.
+   * If set to true, the response will include timestamps in the transcript.
+   * @default false
+   */
+  with_timestamps?: boolean;
 
-    /**
-     * ID of the model to use.
-     */
-    model: string;
+  /**
+   * Enables speaker diarization, which identifies and separates different speakers in the audio.
+   * When set to true, the API will provide speaker-specific segments in the response.
+   * Note: This parameter is currently in Beta mode.
+   * @default false
+   */
+  with_diarization?: boolean;
 
-    /**
-     * Prompt to guide the model's style or specify how to spell unfamiliar words. (limited to 224 tokens)
-     */
-    prompt?: string;
-
-    /**
-     * Define the output response format.
-     * Set to verbose_json to receive timestamps for audio segments.
-     * Set to text to return a text response.
-     */
-    response_format?: string;
-
-    /**
-     * The temperature between 0 and 1. For translations and transcriptions, we recommend the default value of 0.
-     */
-    temperature?: number;
-
-    /**
-     * The timestamp granularities to populate for this transcription. response_format must be set verbose_json to use timestamp granularities.
-     * Either or both of word and segment are supported.
-     * segment returns full metadata and word returns only word, start, and end timestamps. To get both word-level timestamps and full segment metadata, include both values in the array.
-     */
-    timestamp_granularities?: Array<string>;
-}
+  /**
+   * Number of speakers to be detected in the audio.
+   * This is used when with_diarization is set to true.
+   * Can be null.
+   */
+  num_speakers?: number | null;
+};

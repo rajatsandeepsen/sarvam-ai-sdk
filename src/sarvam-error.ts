@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { createJsonErrorResponseHandler } from "@ai-sdk/provider-utils";
 
-export const groqErrorDataSchema = z.object({
+export const sarvamErrorDataSchema = z.object({
     error: z.object({
         message: z.string(),
         type: z.string(),
     }),
 });
 
-export type SarvamErrorData = z.infer<typeof groqErrorDataSchema>;
+export type SarvamErrorData = z.infer<typeof sarvamErrorDataSchema>;
 
-export const groqFailedResponseHandler = createJsonErrorResponseHandler({
-    errorSchema: groqErrorDataSchema,
+export const sarvamFailedResponseHandler = createJsonErrorResponseHandler({
+    errorSchema: sarvamErrorDataSchema,
     errorToMessage: (data) => data.error.message,
 });

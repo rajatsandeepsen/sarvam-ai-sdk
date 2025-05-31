@@ -14,7 +14,7 @@ import { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
 import { SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
 import { SarvamTranscriptionModel } from "./sarvam-transcription-model";
 
-export interface SarvamProvider extends ProviderV1 {
+export interface SarvamProvider {
     /**
 Creates a model for text generation.
 */
@@ -68,12 +68,12 @@ export function createSarvam(
 ): SarvamProvider {
     const baseURL =
         withoutTrailingSlash(options.baseURL) ??
-        "https://api.sarvam.com/openai/v1";
+        "https://api.sarvam.ai/v1";
 
     const getHeaders = () => ({
         Authorization: `Bearer ${loadApiKey({
             apiKey: options.apiKey,
-            environmentVariableName: "GROQ_API_KEY",
+            environmentVariableName: "SARVAM_API_KEY",
             description: "Sarvam",
         })}`,
         ...options.headers,
@@ -121,12 +121,12 @@ export function createSarvam(
 
     provider.languageModel = createLanguageModel;
     provider.chat = createChatModel;
-    provider.textEmbeddingModel = (modelId: string) => {
-        throw new NoSuchModelError({
-            modelId,
-            modelType: "textEmbeddingModel",
-        });
-    };
+    // provider.textEmbeddingModel = (modelId: string) => {
+    //     throw new NoSuchModelError({
+    //         modelId,
+    //         modelType: "textEmbeddingModel",
+    //     });
+    // };
     provider.transcription = createTranscriptionModel;
 
     return provider;

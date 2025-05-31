@@ -1,173 +1,173 @@
 import {
-    TranscriptionModelV1,
-    TranscriptionModelV1CallWarning,
-} from "@ai-sdk/provider";
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
+} from '@ai-sdk/provider';
 import {
-    combineHeaders,
-    convertBase64ToUint8Array,
-    createJsonResponseHandler,
-    parseProviderOptions,
-    postFormDataToApi,
-} from "@ai-sdk/provider-utils";
-import { z } from "zod";
-import { SarvamConfig } from "./sarvam-config";
-import { groqFailedResponseHandler } from "./sarvam-error";
-import { SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
-import { SarvamTranscriptionAPITypes } from "./sarvam-api-types";
+  combineHeaders,
+  createJsonResponseHandler,
+  parseProviderOptions,
+  postFormDataToApi,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import { SarvamConfig } from './sarvam-config';
+import { SarvamTranscriptionAPITypes } from './sarvam-api-types';
+import { sarvamFailedResponseHandler } from './sarvam-error';
+import { SarvamTranscriptionModelId } from './sarvam-transcription-settings';
 
-// https://console.sarvam.com/docs/speech-to-text
-const groqProviderOptionsSchema = z.object({
-    language: z.string().nullish(),
-    prompt: z.string().nullish(),
-    responseFormat: z.string().nullish(),
-    temperature: z.number().min(0).max(1).nullish(),
-    timestampGranularities: z.array(z.string()).nullish(),
+// https://docs.sarvam.ai/api-reference-docs/endpoints/speech-to-text
+const sarvamProviderOptionsSchema = z.object({
+  language_code: z.string(),
+  with_timestamps: z.boolean().nullish().default(false),
+  /**
+   * Enables speaker diarization, which identifies and separates different speakers in the audio.
+   * When set to true, the API will provide speaker-specific segments in the response.
+   * Note: This parameter is currently in Beta mode.
+   */
+  with_diarization: z.boolean().nullish().default(false),
+  /**
+   * Number of speakers to be detected in the audio.
+   * This is used when with_diarization is set to true.
+   * Can be null.
+   */
+  num_speakers: z.number().int().nullish(),
 });
 
 export type SarvamTranscriptionCallOptions = z.infer<
-    typeof groqProviderOptionsSchema
+  typeof sarvamProviderOptionsSchema
 >;
 
 interface SarvamTranscriptionModelConfig extends SarvamConfig {
-    _internal?: {
-        currentDate?: () => Date;
-    };
+  _internal?: {
+    currentDate?: () => Date;
+  };
 }
 
 export class SarvamTranscriptionModel implements TranscriptionModelV1 {
-    readonly specificationVersion = "v1";
+  readonly specificationVersion = 'v1';
 
-    get provider(): string {
-        return this.config.provider;
+  constructor(
+    readonly modelId: SarvamTranscriptionModelId,
+    private readonly config: SarvamTranscriptionModelConfig,
+  ) {}
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  private getArgs({
+    audio,
+    mediaType,
+    providerOptions,
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
+
+    const sarvamOptions = parseProviderOptions({
+      provider: 'sarvam',
+      providerOptions,
+      schema: sarvamProviderOptionsSchema,
+    });
+
+    const formData = new FormData();
+    const blob =
+      audio instanceof Blob ? audio : new Blob([audio], { type: mediaType });
+
+    formData.append('file', blob);
+    formData.append('model', this.modelId);
+    if (sarvamOptions) {
+      formData.append('language_code', sarvamOptions.language_code);
+      formData.append(
+        'with_timestamps',
+        sarvamOptions.with_timestamps ? 'true' : 'false',
+      );
+      formData.append(
+        'with_diarization',
+        sarvamOptions.with_diarization ? 'true' : 'false',
+      );
+      if (
+        sarvamOptions.num_speakers !== null &&
+        sarvamOptions.num_speakers !== undefined
+      ) {
+        formData.append('num_speakers', sarvamOptions.num_speakers.toString());
+      }
     }
 
-    constructor(
-        readonly modelId: SarvamTranscriptionModelId,
-        private readonly config: SarvamTranscriptionModelConfig,
-    ) {}
+    return {
+      formData,
+      warnings,
+    };
+  }
 
-    private getArgs({
-        audio,
-        mediaType,
-        providerOptions,
-    }: Parameters<TranscriptionModelV1["doGenerate"]>[0]) {
-        const warnings: TranscriptionModelV1CallWarning[] = [];
+  async doGenerate(
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { formData, warnings } = this.getArgs(options);
 
-        // Parse provider options
-        const groqOptions = parseProviderOptions({
-            provider: "sarvam",
-            providerOptions,
-            schema: groqProviderOptionsSchema,
-        });
+    const {
+      value: response,
+      responseHeaders,
+      rawValue: rawResponse,
+    } = await postFormDataToApi({
+      url: this.config.url({
+        path: '/speech-to-text',
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      formData,
+      failedResponseHandler: sarvamFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        sarvamTranscriptionResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
 
-        // Create form data with base fields
-        const formData = new FormData();
-        const blob =
-            audio instanceof Uint8Array
-                ? new Blob([audio])
-                : new Blob([convertBase64ToUint8Array(audio)]);
-
-        formData.append("model", this.modelId);
-        formData.append("file", new File([blob], "audio", { type: mediaType }));
-
-        // Add provider-specific options
-        if (groqOptions) {
-            const transcriptionModelOptions: Omit<
-                SarvamTranscriptionAPITypes,
-                "model"
-            > = {
-                language: groqOptions.language ?? undefined,
-                prompt: groqOptions.prompt ?? undefined,
-                response_format: groqOptions.responseFormat ?? undefined,
-                temperature: groqOptions.temperature ?? undefined,
-                timestamp_granularities:
-                    groqOptions.timestampGranularities ?? undefined,
-            };
-
-            for (const key in transcriptionModelOptions) {
-                const value =
-                    transcriptionModelOptions[
-                        key as keyof Omit<SarvamTranscriptionAPITypes, "model">
-                    ];
-                if (value !== undefined) {
-                    formData.append(key, String(value));
-                }
-            }
-        }
-
-        return {
-            formData,
-            warnings,
-        };
-    }
-
-    async doGenerate(
-        options: Parameters<TranscriptionModelV1["doGenerate"]>[0],
-    ): Promise<Awaited<ReturnType<TranscriptionModelV1["doGenerate"]>>> {
-        const currentDate =
-            this.config._internal?.currentDate?.() ?? new Date();
-        const { formData, warnings } = this.getArgs(options);
-
-        const {
-            value: response,
-            responseHeaders,
-            rawValue: rawResponse,
-        } = await postFormDataToApi({
-            url: this.config.url({
-                path: "/audio/transcriptions",
-                modelId: this.modelId,
-            }),
-            headers: combineHeaders(this.config.headers(), options.headers),
-            formData,
-            failedResponseHandler: groqFailedResponseHandler,
-            successfulResponseHandler: createJsonResponseHandler(
-                groqTranscriptionResponseSchema,
-            ),
-            abortSignal: options.abortSignal,
-            fetch: this.config.fetch,
-        });
-
-        return {
-            text: response.text,
-            segments:
-                response.segments?.map((segment) => ({
-                    text: segment.text,
-                    startSecond: segment.start,
-                    endSecond: segment.end,
-                })) ?? [],
-            language: response.language,
-            durationInSeconds: response.duration,
-            warnings,
-            response: {
-                timestamp: currentDate,
-                modelId: this.modelId,
-                headers: responseHeaders,
-                body: rawResponse,
-            },
-        };
-    }
+    return {
+      text: response.transcript,
+      segments: response.timestamps
+        ? response.timestamps.words.map((word, index) => ({
+            text: word,
+            startSecond: response.timestamps!.start_time_seconds[index],
+            endSecond: response.timestamps!.end_time_seconds[index],
+          }))
+        : [],
+      language: response.language_code ? response.language_code : undefined,
+      durationInSeconds:
+        response.timestamps?.end_time_seconds[
+          response.timestamps.end_time_seconds.length - 1
+        ] ?? undefined,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+    };
+  }
 }
 
-const groqTranscriptionResponseSchema = z.object({
-    task: z.string(),
-    language: z.string(),
-    duration: z.number(),
-    text: z.string(),
-    segments: z.array(
+const sarvamTranscriptionResponseSchema = z.object({
+  request_id: z.string().nullable(),
+  transcript: z.string(),
+  language_code: z.string().nullable(),
+  timestamps: z
+    .object({
+      end_time_seconds: z.array(z.number()),
+      start_time_seconds: z.array(z.number()),
+      words: z.array(z.string()),
+    })
+    .optional(),
+  diarized_transcript: z
+    .object({
+      entries: z.array(
         z.object({
-            id: z.number(),
-            seek: z.number(),
-            start: z.number(),
-            end: z.number(),
-            text: z.string(),
-            tokens: z.array(z.number()),
-            temperature: z.number(),
-            avg_logprob: z.number(),
-            compression_ratio: z.number(),
-            no_speech_prob: z.number(),
+          end_time_seconds: z.array(z.number()),
+          start_time_seconds: z.array(z.number()),
+          transcript: z.string(),
+          speaker_id: z.string(),
         }),
-    ),
-    x_groq: z.object({
-        id: z.string(),
-    }),
+      ),
+    })
+    .optional(),
 });

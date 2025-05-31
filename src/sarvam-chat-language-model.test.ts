@@ -13,23 +13,23 @@ const provider = createSarvam({
     apiKey: "test-api-key",
 });
 
-const model = provider("gemma2-9b-it");
+const model = provider("sarvam-m");
 
 describe("settings", () => {
     it("should set supportsImageUrls to true by default", () => {
-        const defaultModel = provider("gemma2-9b-it");
+        const defaultModel = provider("sarvam-m");
         expect(defaultModel.supportsImageUrls).toBe(true);
     });
 
     it("should set supportsImageUrls to false when downloadImages is true", () => {
-        const modelWithDownloadImages = provider("gemma2-9b-it", {
+        const modelWithDownloadImages = provider("sarvam-m", {
             downloadImages: true,
         });
         expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
     });
 
     it("should set supportsImageUrls to true when downloadImages is false", () => {
-        const modelWithoutDownloadImages = provider("gemma2-9b-it", {
+        const modelWithoutDownloadImages = provider("sarvam-m", {
             downloadImages: false,
         });
         expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
@@ -37,7 +37,7 @@ describe("settings", () => {
 });
 
 const server = createTestServer({
-    "https://api.sarvam.com/openai/v1/chat/completions": {},
+    "https://api.sarvam.com/v1/chat/completions": {},
 });
 
 describe("doGenerate", () => {
@@ -54,7 +54,7 @@ describe("doGenerate", () => {
         finish_reason = "stop",
         id = "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
         created = 1711115037,
-        model = "gemma2-9b-it",
+        model = "sarvam-m",
         headers,
     }: {
         content?: string;
@@ -83,7 +83,7 @@ describe("doGenerate", () => {
         headers?: Record<string, string>;
     } = {}) {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "json-value",
             headers,
@@ -260,7 +260,7 @@ describe("doGenerate", () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-            model: "gemma2-9b-it",
+            model: "sarvam-m",
             messages: [{ role: "user", content: "Hello" }],
         });
     });
@@ -268,7 +268,7 @@ describe("doGenerate", () => {
     it("should pass settings", async () => {
         prepareJsonResponse();
 
-        await provider("gemma2-9b-it", {
+        await provider("sarvam-m", {
             parallelToolCalls: false,
             user: "test-user-id",
         }).doGenerate({
@@ -281,7 +281,7 @@ describe("doGenerate", () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-            model: "gemma2-9b-it",
+            model: "sarvam-m",
             messages: [{ role: "user", content: "Hello" }],
             parallel_tool_calls: false,
             user: "test-user-id",
@@ -318,7 +318,7 @@ describe("doGenerate", () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-            model: "gemma2-9b-it",
+            model: "sarvam-m",
             messages: [{ role: "user", content: "Hello" }],
             tools: [
                 {
@@ -352,7 +352,7 @@ describe("doGenerate", () => {
             },
         });
 
-        await provider("gemma2-9b-it").doGenerate({
+        await provider("sarvam-m").doGenerate({
             inputFormat: "prompt",
             mode: { type: "regular" },
             prompt: TEST_PROMPT,
@@ -421,7 +421,7 @@ describe("doGenerate", () => {
     it("should pass object-json mode", async () => {
         prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-        const model = provider("gemma2-9b-it");
+        const model = provider("sarvam-m");
 
         await model.doGenerate({
             inputFormat: "prompt",
@@ -441,7 +441,7 @@ describe("doGenerate", () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-            model: "gemma2-9b-it",
+            model: "sarvam-m",
             messages: [{ role: "user", content: "Hello" }],
             response_format: {
                 type: "json_object",
@@ -459,7 +459,7 @@ describe("doGenerate", () => {
         });
 
         expect(request).toStrictEqual({
-            body: '{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}]}',
+            body: '{"model":"sarvam-m","messages":[{"role":"user","content":"Hello"}]}',
         });
     });
 });
@@ -475,24 +475,24 @@ describe("doStream", () => {
         headers?: Record<string, string>;
     }) {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             headers,
             chunks: [
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
                 ...content.map((text) => {
                     return (
-                        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                         `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
                     );
                 }),
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"${finish_reason}"}],` +
-                    `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+                    `"x_sarvam":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
                     `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
                 "data: [DONE]\n\n",
             ],
@@ -516,7 +516,7 @@ describe("doStream", () => {
             {
                 type: "response-metadata",
                 id: "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-                modelId: "gemma2-9b-it",
+                modelId: "sarvam-m",
                 timestamp: new Date("2023-12-15T16:17:00.000Z"),
             },
             { type: "text-delta", textDelta: "Hello" },
@@ -532,23 +532,23 @@ describe("doStream", () => {
 
     it("should stream reasoning deltas", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"I think,"},"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"therefore I am."},"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"sarvam-m",` +
                     `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
-                    `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+                    `"x_sarvam":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
                     `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
                 "data: [DONE]\n\n",
             ],
@@ -565,7 +565,7 @@ describe("doStream", () => {
             {
                 type: "response-metadata",
                 id: "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-                modelId: "gemma2-9b-it",
+                modelId: "sarvam-m",
                 timestamp: new Date("2023-12-15T16:17:00.000Z"),
             },
             { type: "reasoning", textDelta: "I think," },
@@ -581,38 +581,38 @@ describe("doStream", () => {
 
     it("should stream tool deltas", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
                     `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-                    `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+                    `"x_sarvam":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
                     `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
                 "data: [DONE]\n\n",
             ],
@@ -643,7 +643,7 @@ describe("doStream", () => {
             {
                 type: "response-metadata",
                 id: "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-                modelId: "gemma2-9b-it",
+                modelId: "sarvam-m",
                 timestamp: new Date("2024-03-25T09:06:38.000Z"),
             },
             {
@@ -712,38 +712,38 @@ describe("doStream", () => {
 
     it("should stream tool call deltas when tool call arguments are passed in the first chunk", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
                     `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-                    `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+                    `"x_sarvam":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
                     `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
                 "data: [DONE]\n\n",
             ],
@@ -774,7 +774,7 @@ describe("doStream", () => {
             {
                 type: "response-metadata",
                 id: "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-                modelId: "gemma2-9b-it",
+                modelId: "sarvam-m",
                 timestamp: new Date("2024-03-25T09:06:38.000Z"),
             },
             {
@@ -850,7 +850,7 @@ describe("doStream", () => {
 
     it("should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [
@@ -974,17 +974,17 @@ describe("doStream", () => {
 
     it("should stream tool call that is sent in one chunk", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
                     `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
                     `"finish_reason":null}]}\n\n`,
-                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+                `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"sarvam-m",` +
                     `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-                    `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+                    `"x_sarvam":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
                     `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
                 "data: [DONE]\n\n",
             ],
@@ -1015,7 +1015,7 @@ describe("doStream", () => {
             {
                 type: "response-metadata",
                 id: "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-                modelId: "gemma2-9b-it",
+                modelId: "sarvam-m",
                 timestamp: new Date("2024-03-25T09:06:38.000Z"),
             },
             {
@@ -1042,7 +1042,7 @@ describe("doStream", () => {
 
     it("should handle error stream parts", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [
@@ -1079,7 +1079,7 @@ describe("doStream", () => {
 
     it("should handle unparsable stream parts", async () => {
         server.urls[
-            "https://api.sarvam.com/openai/v1/chat/completions"
+            "https://api.sarvam.com/v1/chat/completions"
         ].response = {
             type: "stream-chunks",
             chunks: [`data: {unparsable}\n\n`, "data: [DONE]\n\n"],
@@ -1140,7 +1140,7 @@ describe("doStream", () => {
 
         expect(await server.calls[0].requestBody).toStrictEqual({
             stream: true,
-            model: "gemma2-9b-it",
+            model: "sarvam-m",
             messages: [{ role: "user", content: "Hello" }],
         });
     });
@@ -1155,7 +1155,7 @@ describe("doStream", () => {
             },
         });
 
-        await provider("gemma2-9b-it").doStream({
+        await provider("sarvam-m").doStream({
             inputFormat: "prompt",
             mode: { type: "regular" },
             prompt: TEST_PROMPT,
@@ -1182,7 +1182,7 @@ describe("doStream", () => {
         });
 
         expect(request).toStrictEqual({
-            body: '{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}],"stream":true}',
+            body: '{"model":"sarvam-m","messages":[{"role":"user","content":"Hello"}],"stream":true}',
         });
     });
 });

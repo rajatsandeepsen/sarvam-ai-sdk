@@ -21,7 +21,7 @@ import { z } from "zod";
 import { convertToSarvamChatMessages } from "./convert-to-sarvam-chat-messages";
 import { getResponseMetadata } from "./get-response-metadata";
 import { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
-import { groqErrorDataSchema, groqFailedResponseHandler } from "./sarvam-error";
+import { sarvamErrorDataSchema, sarvamFailedResponseHandler } from "./sarvam-error";
 import { prepareTools } from "./sarvam-prepare-tools";
 import { mapSarvamFinishReason } from "./map-sarvam-finish-reason";
 
@@ -102,7 +102,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
             });
         }
 
-        const groqOptions = parseProviderOptions({
+        const sarvamOptions = parseProviderOptions({
             provider: "sarvam",
             providerOptions: providerMetadata,
             schema: z.object({
@@ -135,7 +135,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
                     : undefined,
 
             // provider options:
-            reasoning_format: groqOptions?.reasoningFormat,
+            reasoning_format: sarvamOptions?.reasoningFormat,
 
             // messages:
             messages: convertToSarvamChatMessages(prompt),
@@ -218,9 +218,9 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
             }),
             headers: combineHeaders(this.config.headers(), options.headers),
             body: args,
-            failedResponseHandler: groqFailedResponseHandler,
+            failedResponseHandler: sarvamFailedResponseHandler,
             successfulResponseHandler: createJsonResponseHandler(
-                groqChatResponseSchema,
+                sarvamChatResponseSchema,
             ),
             abortSignal: options.abortSignal,
             fetch: this.config.fetch,
@@ -268,9 +268,9 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
                 ...args,
                 stream: true,
             },
-            failedResponseHandler: groqFailedResponseHandler,
+            failedResponseHandler: sarvamFailedResponseHandler,
             successfulResponseHandler:
-                createEventSourceResponseHandler(groqChatChunkSchema),
+                createEventSourceResponseHandler(sarvamChatChunkSchema),
             abortSignal: options.abortSignal,
             fetch: this.config.fetch,
         });
@@ -301,7 +301,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
         return {
             stream: response.pipeThrough(
                 new TransformStream<
-                    ParseResult<z.infer<typeof groqChatChunkSchema>>,
+                    ParseResult<z.infer<typeof sarvamChatChunkSchema>>,
                     LanguageModelV1StreamPart
                 >({
                     transform(chunk, controller) {
@@ -336,13 +336,13 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
                             });
                         }
 
-                        if (value.x_groq?.usage != null) {
+                        if (value.x_sarvam?.usage != null) {
                             usage = {
                                 promptTokens:
-                                    value.x_groq.usage.prompt_tokens ??
+                                    value.x_sarvam.usage.prompt_tokens ??
                                     undefined,
                                 completionTokens:
-                                    value.x_groq.usage.completion_tokens ??
+                                    value.x_sarvam.usage.completion_tokens ??
                                     undefined,
                             };
                         }
@@ -528,7 +528,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatResponseSchema = z.object({
+const sarvamChatResponseSchema = z.object({
     id: z.string().nullish(),
     created: z.number().nullish(),
     model: z.string().nullish(),
@@ -564,7 +564,7 @@ const groqChatResponseSchema = z.object({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatChunkSchema = z.union([
+const sarvamChatChunkSchema = z.union([
     z.object({
         id: z.string().nullish(),
         created: z.number().nullish(),
@@ -594,7 +594,7 @@ const groqChatChunkSchema = z.union([
                 index: z.number(),
             }),
         ),
-        x_groq: z
+        x_sarvam: z
             .object({
                 usage: z
                     .object({
@@ -605,5 +605,5 @@ const groqChatChunkSchema = z.union([
             })
             .nullish(),
     }),
-    groqErrorDataSchema,
+    sarvamErrorDataSchema,
 ]);

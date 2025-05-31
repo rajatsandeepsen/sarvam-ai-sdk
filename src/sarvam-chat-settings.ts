@@ -1,21 +1,7 @@
 // https://console.sarvam.com/docs/models
 export type SarvamChatModelId =
     // production models
-    | "gemma2-9b-it"
-    | "llama-3.3-70b-versatile"
-    | "llama-3.1-8b-instant"
-    | "llama-guard-3-8b"
-    | "llama3-70b-8192"
-    | "llama3-8b-8192"
-    | "mixtral-8x7b-32768"
-    // preview models (selection)
-    | "meta-llama/llama-4-scout-17b-16e-instruct"
-    | "qwen-qwq-32b"
-    | "mistral-saba-24b"
-    | "qwen-2.5-32b"
-    | "deepseek-r1-distill-qwen-32b"
-    | "deepseek-r1-distill-llama-70b"
-    | (string & {});
+    "sarvam-m" | (string & {});
 
 export interface SarvamChatSettings {
     /**
