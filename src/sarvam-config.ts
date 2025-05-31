@@ -1,4 +1,5 @@
 import { FetchFunction } from "@ai-sdk/provider-utils";
+import { z } from "zod";
 
 export type SarvamConfig = {
     provider: string;
@@ -7,3 +8,19 @@ export type SarvamConfig = {
     fetch?: FetchFunction;
     generateId?: () => string;
 };
+
+export type SarvamLanguageCode = z.infer<typeof SarvamLanguageCodeSchema>;
+
+export const SarvamLanguageCodeSchema = z.enum([
+    "hi-IN",
+    "bn-IN",
+    "kn-IN",
+    "ml-IN",
+    "mr-IN",
+    "od-IN",
+    "pa-IN",
+    "ta-IN",
+    "te-IN",
+    "en-IN",
+    "gu-IN",
+]);
