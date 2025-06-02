@@ -1,609 +1,623 @@
 import {
-    InvalidResponseDataError,
-    LanguageModelV1,
-    LanguageModelV1CallWarning,
-    LanguageModelV1FinishReason,
-    LanguageModelV1ProviderMetadata,
-    LanguageModelV1StreamPart,
+  InvalidResponseDataError,
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+  LanguageModelV1FunctionToolCall,
+  LanguageModelV1Prompt,
+  LanguageModelV1ProviderMetadata,
+  LanguageModelV1StreamPart,
 } from "@ai-sdk/provider";
 import {
-    FetchFunction,
-    ParseResult,
-    combineHeaders,
-    createEventSourceResponseHandler,
-    createJsonResponseHandler,
-    generateId,
-    isParsableJson,
-    parseProviderOptions,
-    postJsonToApi,
+  FetchFunction,
+  ParseResult,
+  combineHeaders,
+  createEventSourceResponseHandler,
+  createJsonResponseHandler,
+  generateId,
+  isParsableJson,
+  parseProviderOptions,
+  postJsonToApi,
 } from "@ai-sdk/provider-utils";
 import { z } from "zod";
 import { convertToSarvamChatMessages } from "./convert-to-sarvam-chat-messages";
 import { getResponseMetadata } from "./get-response-metadata";
-import { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
-import { sarvamErrorDataSchema, sarvamFailedResponseHandler } from "./sarvam-error";
-import { prepareTools } from "./sarvam-prepare-tools";
 import { mapSarvamFinishReason } from "./map-sarvam-finish-reason";
+import { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
+import {
+  sarvamErrorDataSchema,
+  sarvamFailedResponseHandler,
+} from "./sarvam-error";
+import {
+  extractToolCallData,
+  prepareTools,
+  simulateToolCalling,
+} from "./sarvam-prepare-tools";
 
 type SarvamChatConfig = {
-    provider: string;
-    headers: () => Record<string, string | undefined>;
-    url: (options: { modelId: string; path: string }) => string;
-    fetch?: FetchFunction;
+  provider: string;
+  headers: () => Record<string, string | undefined>;
+  url: (options: { modelId: string; path: string }) => string;
+  fetch?: FetchFunction;
 };
 
 export class SarvamChatLanguageModel implements LanguageModelV1 {
-    readonly specificationVersion = "v1";
+  readonly specificationVersion = "v1";
 
-    readonly supportsStructuredOutputs = false;
-    readonly defaultObjectGenerationMode = "json";
+  readonly supportsStructuredOutputs = false;
+  readonly defaultObjectGenerationMode = "json";
 
-    readonly modelId: SarvamChatModelId;
-    readonly settings: SarvamChatSettings;
+  readonly modelId: SarvamChatModelId;
+  readonly settings: SarvamChatSettings;
 
-    private readonly config: SarvamChatConfig;
+  private readonly config: SarvamChatConfig;
 
-    constructor(
-        modelId: SarvamChatModelId,
-        settings: SarvamChatSettings,
-        config: SarvamChatConfig,
+  constructor(
+    modelId: SarvamChatModelId,
+    settings: SarvamChatSettings,
+    config: SarvamChatConfig,
+  ) {
+    this.modelId = modelId;
+    this.settings = settings;
+    this.config = config;
+  }
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  get supportsImageUrls(): boolean {
+    // image urls can be sent if downloadImages is disabled (default):
+    return !this.settings.downloadImages;
+  }
+
+  private async getArgs({
+    mode,
+    prompt,
+    maxTokens,
+    temperature,
+    topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
+    stopSequences,
+    responseFormat,
+    seed,
+    stream,
+    providerMetadata,
+  }: Parameters<LanguageModelV1["doGenerate"]>[0] & {
+    stream: boolean;
+  }) {
+    const type = mode.type;
+
+    const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({
+        type: "unsupported-setting",
+        setting: "topK",
+      });
+    }
+
+    if (
+      responseFormat != null &&
+      responseFormat.type === "json" &&
+      responseFormat.schema != null
     ) {
-        this.modelId = modelId;
-        this.settings = settings;
-        this.config = config;
+      warnings.push({
+        type: "unsupported-setting",
+        setting: "responseFormat",
+        details: "JSON response format schema is not supported",
+      });
     }
 
-    get provider(): string {
-        return this.config.provider;
-    }
+    const sarvamOptions = parseProviderOptions({
+      provider: "sarvam",
+      providerOptions: providerMetadata,
+      schema: z.object({
+        reasoningFormat: z.enum(["parsed", "raw", "hidden"]).nullish(),
+      }),
+    });
 
-    get supportsImageUrls(): boolean {
-        // image urls can be sent if downloadImages is disabled (default):
-        return !this.settings.downloadImages;
-    }
+    const baseArgs = (
+      prompt: LanguageModelV1Prompt,
+      fakeToolSystemPrompt?: string,
+    ) => ({
+      // model id:
+      model: this.modelId,
 
-    private getArgs({
-        mode,
-        prompt,
-        maxTokens,
-        temperature,
-        topP,
-        topK,
-        frequencyPenalty,
-        presencePenalty,
-        stopSequences,
-        responseFormat,
-        seed,
-        stream,
-        providerMetadata,
-    }: Parameters<LanguageModelV1["doGenerate"]>[0] & {
-        stream: boolean;
-    }) {
-        const type = mode.type;
+      // model specific settings:
+      user: this.settings.user,
+      parallel_tool_calls: this.settings.parallelToolCalls,
 
-        const warnings: LanguageModelV1CallWarning[] = [];
+      // standardized settings:
+      max_tokens: maxTokens,
+      temperature,
+      top_p: topP,
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
+      stop: stopSequences,
+      seed,
 
-        if (topK != null) {
-            warnings.push({
-                type: "unsupported-setting",
-                setting: "topK",
-            });
-        }
+      // response format:
+      response_format:
+        // json object response format is not supported for streaming:
+        stream === false && responseFormat?.type === "json"
+          ? { type: "json_object" }
+          : undefined,
 
-        if (
-            responseFormat != null &&
-            responseFormat.type === "json" &&
-            responseFormat.schema != null
-        ) {
-            warnings.push({
-                type: "unsupported-setting",
-                setting: "responseFormat",
-                details: "JSON response format schema is not supported",
-            });
-        }
+      // provider options:
+      reasoning_format: sarvamOptions?.reasoningFormat,
 
-        const sarvamOptions = parseProviderOptions({
-            provider: "sarvam",
-            providerOptions: providerMetadata,
-            schema: z.object({
-                reasoningFormat: z.enum(["parsed", "raw", "hidden"]).nullish(),
-            }),
+      // messages:
+      messages: convertToSarvamChatMessages(prompt, fakeToolSystemPrompt),
+    });
+
+    switch (type) {
+      case "regular": {
+        const { tools, tool_choice, toolWarnings } = prepareTools({
+          mode,
         });
 
-        const baseArgs = {
-            // model id:
-            model: this.modelId,
+        const fakeSystemPrompt =
+          tools && this.settings.simulateToolCalling
+            ? await simulateToolCalling(tools)
+            : undefined;
 
-            // model specific settings:
-            user: this.settings.user,
-            parallel_tool_calls: this.settings.parallelToolCalls,
+        return {
+          args: {
+            ...baseArgs(prompt, fakeSystemPrompt),
+            tools,
+            tool_choice,
+          },
+          warnings: [...warnings, ...toolWarnings],
+        };
+      }
 
-            // standardized settings:
-            max_tokens: maxTokens,
-            temperature,
-            top_p: topP,
-            frequency_penalty: frequencyPenalty,
-            presence_penalty: presencePenalty,
-            stop: stopSequences,
-            seed,
-
-            // response format:
+      case "object-json": {
+        return {
+          args: {
+            ...baseArgs(prompt),
             response_format:
-                // json object response format is not supported for streaming:
-                stream === false && responseFormat?.type === "json"
-                    ? { type: "json_object" }
-                    : undefined,
-
-            // provider options:
-            reasoning_format: sarvamOptions?.reasoningFormat,
-
-            // messages:
-            messages: convertToSarvamChatMessages(prompt),
+              // json object response format is not supported for streaming:
+              stream === false ? { type: "json_object" } : undefined,
+          },
+          warnings,
         };
+      }
 
-        switch (type) {
-            case "regular": {
-                const { tools, tool_choice, toolWarnings } = prepareTools({
-                    mode,
-                });
-                return {
-                    args: {
-                        ...baseArgs,
-                        tools,
-                        tool_choice,
-                    },
-                    warnings: [...warnings, ...toolWarnings],
-                };
-            }
+      case "object-tool": {
+        return {
+          args: {
+            ...baseArgs(prompt),
+            tool_choice: {
+              type: "function",
+              function: { name: mode.tool.name },
+            },
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: mode.tool.name,
+                  description: mode.tool.description,
+                  parameters: mode.tool.parameters,
+                },
+              },
+            ],
+          },
+          warnings,
+        };
+      }
 
-            case "object-json": {
-                return {
-                    args: {
-                        ...baseArgs,
-                        response_format:
-                            // json object response format is not supported for streaming:
-                            stream === false
-                                ? { type: "json_object" }
-                                : undefined,
-                    },
-                    warnings,
-                };
-            }
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
+  }
 
-            case "object-tool": {
-                return {
-                    args: {
-                        ...baseArgs,
-                        tool_choice: {
-                            type: "function",
-                            function: { name: mode.tool.name },
-                        },
-                        tools: [
-                            {
-                                type: "function",
-                                function: {
-                                    name: mode.tool.name,
-                                    description: mode.tool.description,
-                                    parameters: mode.tool.parameters,
-                                },
-                            },
-                        ],
-                    },
-                    warnings,
-                };
-            }
+  async doGenerate(
+    options: Parameters<LanguageModelV1["doGenerate"]>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
+    const { args, warnings } = await this.getArgs({
+      ...options,
+      stream: false,
+    });
 
-            default: {
-                const _exhaustiveCheck: never = type;
-                throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-            }
+    const body = JSON.stringify(args);
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: "/chat/completions",
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: args,
+      failedResponseHandler: sarvamFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        sarvamChatResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const { messages: rawPrompt, ...rawSettings } = args;
+    const choice = response.choices[0];
+
+    let text = choice.message.content ?? undefined;
+
+    let toolCalls = choice.message.tool_calls?.map((toolCall) => ({
+      toolCallType: "function",
+      toolCallId: toolCall.id ?? generateId(),
+      toolName: toolCall.function.name,
+      args: toolCall.function.arguments!,
+    })) as LanguageModelV1FunctionToolCall[] | undefined;
+
+    // simulate fake tool calling
+    if (this.settings.simulateToolCalling) {
+      if (
+        text &&
+        text.length !== 0 &&
+        (!toolCalls || toolCalls?.length === 0)
+      ) {
+        const newTools = extractToolCallData(text);
+        if (newTools) {
+          toolCalls = [newTools];
+          text = undefined;
         }
+      }
     }
 
-    async doGenerate(
-        options: Parameters<LanguageModelV1["doGenerate"]>[0],
-    ): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
-        const { args, warnings } = this.getArgs({ ...options, stream: false });
+    return {
+      text,
+      toolCalls,
+      reasoning: choice.message.reasoning ?? undefined,
+      finishReason: mapSarvamFinishReason(choice.finish_reason),
+      usage: {
+        promptTokens: response.usage?.prompt_tokens ?? NaN,
+        completionTokens: response.usage?.completion_tokens ?? NaN,
+      },
+      rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
+      response: getResponseMetadata(response),
+      warnings,
+      request: { body },
+    };
+  }
 
-        const body = JSON.stringify(args);
+  async doStream(
+    options: Parameters<LanguageModelV1["doStream"]>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
+    const { args, warnings } = await this.getArgs({ ...options, stream: true });
 
-        const {
-            responseHeaders,
-            value: response,
-            rawValue: rawResponse,
-        } = await postJsonToApi({
-            url: this.config.url({
-                path: "/chat/completions",
-                modelId: this.modelId,
-            }),
-            headers: combineHeaders(this.config.headers(), options.headers),
-            body: args,
-            failedResponseHandler: sarvamFailedResponseHandler,
-            successfulResponseHandler: createJsonResponseHandler(
-                sarvamChatResponseSchema,
-            ),
-            abortSignal: options.abortSignal,
-            fetch: this.config.fetch,
-        });
+    const body = JSON.stringify({ ...args, stream: true });
 
-        const { messages: rawPrompt, ...rawSettings } = args;
-        const choice = response.choices[0];
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: this.config.url({
+        path: "/chat/completions",
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: {
+        ...args,
+        stream: true,
+      },
+      failedResponseHandler: sarvamFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(
+        sarvamChatChunkSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
 
-        return {
-            text: choice.message.content ?? undefined,
-            reasoning: choice.message.reasoning ?? undefined,
-            toolCalls: choice.message.tool_calls?.map((toolCall) => ({
-                toolCallType: "function",
-                toolCallId: toolCall.id ?? generateId(),
-                toolName: toolCall.function.name,
-                args: toolCall.function.arguments!,
-            })),
-            finishReason: mapSarvamFinishReason(choice.finish_reason),
-            usage: {
-                promptTokens: response.usage?.prompt_tokens ?? NaN,
-                completionTokens: response.usage?.completion_tokens ?? NaN,
-            },
-            rawCall: { rawPrompt, rawSettings },
-            rawResponse: { headers: responseHeaders, body: rawResponse },
-            response: getResponseMetadata(response),
-            warnings,
-            request: { body },
-        };
-    }
+    const { messages: rawPrompt, ...rawSettings } = args;
 
-    async doStream(
-        options: Parameters<LanguageModelV1["doStream"]>[0],
-    ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
-        const { args, warnings } = this.getArgs({ ...options, stream: true });
+    const toolCalls: Array<{
+      id: string;
+      type: "function";
+      function: {
+        name: string;
+        arguments: string;
+      };
+      hasFinished: boolean;
+    }> = [];
 
-        const body = JSON.stringify({ ...args, stream: true });
+    let finishReason: LanguageModelV1FinishReason = "unknown";
+    let usage: {
+      promptTokens: number | undefined;
+      completionTokens: number | undefined;
+    } = {
+      promptTokens: undefined,
+      completionTokens: undefined,
+    };
+    let isFirstChunk = true;
 
-        const { responseHeaders, value: response } = await postJsonToApi({
-            url: this.config.url({
-                path: "/chat/completions",
-                modelId: this.modelId,
-            }),
-            headers: combineHeaders(this.config.headers(), options.headers),
-            body: {
-                ...args,
-                stream: true,
-            },
-            failedResponseHandler: sarvamFailedResponseHandler,
-            successfulResponseHandler:
-                createEventSourceResponseHandler(sarvamChatChunkSchema),
-            abortSignal: options.abortSignal,
-            fetch: this.config.fetch,
-        });
+    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
+    return {
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParseResult<z.infer<typeof sarvamChatChunkSchema>>,
+          LanguageModelV1StreamPart
+        >({
+          transform(chunk, controller) {
+            // handle failed chunk parsing / validation:
+            if (!chunk.success) {
+              finishReason = "error";
+              controller.enqueue({
+                type: "error",
+                error: chunk.error,
+              });
+              return;
+            }
 
-        const { messages: rawPrompt, ...rawSettings } = args;
+            const value = chunk.value;
 
-        const toolCalls: Array<{
-            id: string;
-            type: "function";
-            function: {
-                name: string;
-                arguments: string;
-            };
-            hasFinished: boolean;
-        }> = [];
+            // handle error chunks:
+            if ("error" in value) {
+              finishReason = "error";
+              controller.enqueue({
+                type: "error",
+                error: value.error,
+              });
+              return;
+            }
 
-        let finishReason: LanguageModelV1FinishReason = "unknown";
-        let usage: {
-            promptTokens: number | undefined;
-            completionTokens: number | undefined;
-        } = {
-            promptTokens: undefined,
-            completionTokens: undefined,
-        };
-        let isFirstChunk = true;
+            if (isFirstChunk) {
+              isFirstChunk = false;
 
-        let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
-        return {
-            stream: response.pipeThrough(
-                new TransformStream<
-                    ParseResult<z.infer<typeof sarvamChatChunkSchema>>,
-                    LanguageModelV1StreamPart
-                >({
-                    transform(chunk, controller) {
-                        // handle failed chunk parsing / validation:
-                        if (!chunk.success) {
-                            finishReason = "error";
-                            controller.enqueue({
-                                type: "error",
-                                error: chunk.error,
-                            });
-                            return;
-                        }
+              controller.enqueue({
+                type: "response-metadata",
+                ...getResponseMetadata(value),
+              });
+            }
 
-                        const value = chunk.value;
+            if (value.x_sarvam?.usage != null) {
+              usage = {
+                promptTokens: value.x_sarvam.usage.prompt_tokens ?? undefined,
+                completionTokens:
+                  value.x_sarvam.usage.completion_tokens ?? undefined,
+              };
+            }
 
-                        // handle error chunks:
-                        if ("error" in value) {
-                            finishReason = "error";
-                            controller.enqueue({
-                                type: "error",
-                                error: value.error,
-                            });
-                            return;
-                        }
+            const choice = value.choices[0];
 
-                        if (isFirstChunk) {
-                            isFirstChunk = false;
+            if (choice?.finish_reason != null) {
+              finishReason = mapSarvamFinishReason(choice.finish_reason);
+            }
 
-                            controller.enqueue({
-                                type: "response-metadata",
-                                ...getResponseMetadata(value),
-                            });
-                        }
+            if (choice?.delta == null) {
+              return;
+            }
 
-                        if (value.x_sarvam?.usage != null) {
-                            usage = {
-                                promptTokens:
-                                    value.x_sarvam.usage.prompt_tokens ??
-                                    undefined,
-                                completionTokens:
-                                    value.x_sarvam.usage.completion_tokens ??
-                                    undefined,
-                            };
-                        }
+            const delta = choice.delta;
 
-                        const choice = value.choices[0];
+            if (delta.reasoning != null && delta.reasoning.length > 0) {
+              controller.enqueue({
+                type: "reasoning",
+                textDelta: delta.reasoning,
+              });
+            }
 
-                        if (choice?.finish_reason != null) {
-                            finishReason = mapSarvamFinishReason(
-                                choice.finish_reason,
-                            );
-                        }
+            if (delta.content != null && delta.content.length > 0) {
+              controller.enqueue({
+                type: "text-delta",
+                textDelta: delta.content,
+              });
+            }
 
-                        if (choice?.delta == null) {
-                            return;
-                        }
+            if (delta.tool_calls != null) {
+              for (const toolCallDelta of delta.tool_calls) {
+                const index = toolCallDelta.index;
 
-                        const delta = choice.delta;
+                if (toolCalls[index] == null) {
+                  if (toolCallDelta.type !== "function") {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function' type.`,
+                    });
+                  }
 
-                        if (
-                            delta.reasoning != null &&
-                            delta.reasoning.length > 0
-                        ) {
-                            controller.enqueue({
-                                type: "reasoning",
-                                textDelta: delta.reasoning,
-                            });
-                        }
+                  if (toolCallDelta.id == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'id' to be a string.`,
+                    });
+                  }
 
-                        if (delta.content != null && delta.content.length > 0) {
-                            controller.enqueue({
-                                type: "text-delta",
-                                textDelta: delta.content,
-                            });
-                        }
+                  if (toolCallDelta.function?.name == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function.name' to be a string.`,
+                    });
+                  }
 
-                        if (delta.tool_calls != null) {
-                            for (const toolCallDelta of delta.tool_calls) {
-                                const index = toolCallDelta.index;
-
-                                if (toolCalls[index] == null) {
-                                    if (toolCallDelta.type !== "function") {
-                                        throw new InvalidResponseDataError({
-                                            data: toolCallDelta,
-                                            message: `Expected 'function' type.`,
-                                        });
-                                    }
-
-                                    if (toolCallDelta.id == null) {
-                                        throw new InvalidResponseDataError({
-                                            data: toolCallDelta,
-                                            message: `Expected 'id' to be a string.`,
-                                        });
-                                    }
-
-                                    if (toolCallDelta.function?.name == null) {
-                                        throw new InvalidResponseDataError({
-                                            data: toolCallDelta,
-                                            message: `Expected 'function.name' to be a string.`,
-                                        });
-                                    }
-
-                                    toolCalls[index] = {
-                                        id: toolCallDelta.id,
-                                        type: "function",
-                                        function: {
-                                            name: toolCallDelta.function.name,
-                                            arguments:
-                                                toolCallDelta.function
-                                                    .arguments ?? "",
-                                        },
-                                        hasFinished: false,
-                                    };
-
-                                    const toolCall = toolCalls[index];
-
-                                    if (
-                                        toolCall.function?.name != null &&
-                                        toolCall.function?.arguments != null
-                                    ) {
-                                        // send delta if the argument text has already started:
-                                        if (
-                                            toolCall.function.arguments.length >
-                                            0
-                                        ) {
-                                            controller.enqueue({
-                                                type: "tool-call-delta",
-                                                toolCallType: "function",
-                                                toolCallId: toolCall.id,
-                                                toolName:
-                                                    toolCall.function.name,
-                                                argsTextDelta:
-                                                    toolCall.function.arguments,
-                                            });
-                                        }
-
-                                        // check if tool call is complete
-                                        // (some providers send the full tool call in one chunk):
-                                        if (
-                                            isParsableJson(
-                                                toolCall.function.arguments,
-                                            )
-                                        ) {
-                                            controller.enqueue({
-                                                type: "tool-call",
-                                                toolCallType: "function",
-                                                toolCallId:
-                                                    toolCall.id ?? generateId(),
-                                                toolName:
-                                                    toolCall.function.name,
-                                                args: toolCall.function
-                                                    .arguments,
-                                            });
-                                            toolCall.hasFinished = true;
-                                        }
-                                    }
-
-                                    continue;
-                                }
-
-                                // existing tool call, merge if not finished
-                                const toolCall = toolCalls[index];
-
-                                if (toolCall.hasFinished) {
-                                    continue;
-                                }
-
-                                if (toolCallDelta.function?.arguments != null) {
-                                    toolCall.function!.arguments +=
-                                        toolCallDelta.function?.arguments ?? "";
-                                }
-
-                                // send delta
-                                controller.enqueue({
-                                    type: "tool-call-delta",
-                                    toolCallType: "function",
-                                    toolCallId: toolCall.id,
-                                    toolName: toolCall.function.name,
-                                    argsTextDelta:
-                                        toolCallDelta.function.arguments ?? "",
-                                });
-
-                                // check if tool call is complete
-                                if (
-                                    toolCall.function?.name != null &&
-                                    toolCall.function?.arguments != null &&
-                                    isParsableJson(toolCall.function.arguments)
-                                ) {
-                                    controller.enqueue({
-                                        type: "tool-call",
-                                        toolCallType: "function",
-                                        toolCallId: toolCall.id ?? generateId(),
-                                        toolName: toolCall.function.name,
-                                        args: toolCall.function.arguments,
-                                    });
-                                    toolCall.hasFinished = true;
-                                }
-                            }
-                        }
+                  toolCalls[index] = {
+                    id: toolCallDelta.id,
+                    type: "function",
+                    function: {
+                      name: toolCallDelta.function.name,
+                      arguments: toolCallDelta.function.arguments ?? "",
                     },
+                    hasFinished: false,
+                  };
 
-                    flush(controller) {
-                        controller.enqueue({
-                            type: "finish",
-                            finishReason,
-                            usage: {
-                                promptTokens: usage.promptTokens ?? NaN,
-                                completionTokens: usage.completionTokens ?? NaN,
-                            },
-                            ...(providerMetadata != null
-                                ? { providerMetadata }
-                                : {}),
-                        });
-                    },
-                }),
-            ),
-            rawCall: { rawPrompt, rawSettings },
-            rawResponse: { headers: responseHeaders },
-            warnings,
-            request: { body },
-        };
-    }
+                  const toolCall = toolCalls[index];
+
+                  if (
+                    toolCall.function?.name != null &&
+                    toolCall.function?.arguments != null
+                  ) {
+                    // send delta if the argument text has already started:
+                    if (toolCall.function.arguments.length > 0) {
+                      controller.enqueue({
+                        type: "tool-call-delta",
+                        toolCallType: "function",
+                        toolCallId: toolCall.id,
+                        toolName: toolCall.function.name,
+                        argsTextDelta: toolCall.function.arguments,
+                      });
+                    }
+
+                    // check if tool call is complete
+                    // (some providers send the full tool call in one chunk):
+                    if (isParsableJson(toolCall.function.arguments)) {
+                      controller.enqueue({
+                        type: "tool-call",
+                        toolCallType: "function",
+                        toolCallId: toolCall.id ?? generateId(),
+                        toolName: toolCall.function.name,
+                        args: toolCall.function.arguments,
+                      });
+                      toolCall.hasFinished = true;
+                    }
+                  }
+
+                  continue;
+                }
+
+                // existing tool call, merge if not finished
+                const toolCall = toolCalls[index];
+
+                if (toolCall.hasFinished) {
+                  continue;
+                }
+
+                if (toolCallDelta.function?.arguments != null) {
+                  toolCall.function!.arguments +=
+                    toolCallDelta.function?.arguments ?? "";
+                }
+
+                // send delta
+                controller.enqueue({
+                  type: "tool-call-delta",
+                  toolCallType: "function",
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  argsTextDelta: toolCallDelta.function.arguments ?? "",
+                });
+
+                // check if tool call is complete
+                if (
+                  toolCall.function?.name != null &&
+                  toolCall.function?.arguments != null &&
+                  isParsableJson(toolCall.function.arguments)
+                ) {
+                  controller.enqueue({
+                    type: "tool-call",
+                    toolCallType: "function",
+                    toolCallId: toolCall.id ?? generateId(),
+                    toolName: toolCall.function.name,
+                    args: toolCall.function.arguments,
+                  });
+                  toolCall.hasFinished = true;
+                }
+              }
+            }
+          },
+
+          flush(controller) {
+            controller.enqueue({
+              type: "finish",
+              finishReason,
+              usage: {
+                promptTokens: usage.promptTokens ?? NaN,
+                completionTokens: usage.completionTokens ?? NaN,
+              },
+              ...(providerMetadata != null ? { providerMetadata } : {}),
+            });
+          },
+        }),
+      ),
+      rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
+      warnings,
+      request: { body },
+    };
+  }
 }
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const sarvamChatResponseSchema = z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-        z.object({
-            message: z.object({
-                content: z.string().nullish(),
-                reasoning: z.string().nullish(),
-                tool_calls: z
-                    .array(
-                        z.object({
-                            id: z.string().nullish(),
-                            type: z.literal("function"),
-                            function: z.object({
-                                name: z.string(),
-                                arguments: z.string(),
-                            }),
-                        }),
-                    )
-                    .nullish(),
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
+  choices: z.array(
+    z.object({
+      message: z.object({
+        content: z.string().nullish(),
+        reasoning: z.string().nullish(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string().nullish(),
+              type: z.literal("function"),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
             }),
-            index: z.number(),
-            finish_reason: z.string().nullish(),
-        }),
-    ),
-    usage: z
-        .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-        })
-        .nullish(),
+          )
+          .nullish(),
+      }),
+      index: z.number(),
+      finish_reason: z.string().nullish(),
+    }),
+  ),
+  usage: z
+    .object({
+      prompt_tokens: z.number().nullish(),
+      completion_tokens: z.number().nullish(),
+    })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const sarvamChatChunkSchema = z.union([
-    z.object({
-        id: z.string().nullish(),
-        created: z.number().nullish(),
-        model: z.string().nullish(),
-        choices: z.array(
-            z.object({
-                delta: z
-                    .object({
-                        content: z.string().nullish(),
-                        reasoning: z.string().nullish(),
-                        tool_calls: z
-                            .array(
-                                z.object({
-                                    index: z.number(),
-                                    id: z.string().nullish(),
-                                    type: z.literal("function").optional(),
-                                    function: z.object({
-                                        name: z.string().nullish(),
-                                        arguments: z.string().nullish(),
-                                    }),
-                                }),
-                            )
-                            .nullish(),
-                    })
-                    .nullish(),
-                finish_reason: z.string().nullable().optional(),
-                index: z.number(),
-            }),
-        ),
-        x_sarvam: z
-            .object({
-                usage: z
-                    .object({
-                        prompt_tokens: z.number().nullish(),
-                        completion_tokens: z.number().nullish(),
-                    })
-                    .nullish(),
-            })
-            .nullish(),
-    }),
-    sarvamErrorDataSchema,
+  z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
+    choices: z.array(
+      z.object({
+        delta: z
+          .object({
+            content: z.string().nullish(),
+            reasoning: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number(),
+                  id: z.string().nullish(),
+                  type: z.literal("function").optional(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
+                }),
+              )
+              .nullish(),
+          })
+          .nullish(),
+        finish_reason: z.string().nullable().optional(),
+        index: z.number(),
+      }),
+    ),
+    x_sarvam: z
+      .object({
+        usage: z
+          .object({
+            prompt_tokens: z.number().nullish(),
+            completion_tokens: z.number().nullish(),
+          })
+          .nullish(),
+      })
+      .nullish(),
+  }),
+  sarvamErrorDataSchema,
 ]);
