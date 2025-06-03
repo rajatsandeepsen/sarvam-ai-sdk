@@ -14,29 +14,29 @@ import { SarvamLanguageCodeSchema } from "./sarvam-config";
 import {
     sarvamFailedResponseHandler
 } from "./sarvam-error";
-import { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
+import { SarvamTranslationSettings } from "./sarvam-translation-settings";
 
-type SarvamTransliterateConfig = {
+type SarvamTranslationConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class SarvamTransliterateModel implements LanguageModelV1 {
+export class SarvamTranslationModel implements LanguageModelV1 {
   readonly specificationVersion = "v1";
 
   readonly supportsStructuredOutputs = false;
   readonly defaultObjectGenerationMode = "json";
 
   readonly modelId: "unknown";
-  readonly settings: SarvamTransliterateSettings;
+  readonly settings: SarvamTranslationSettings;
 
-  private readonly config: SarvamTransliterateConfig;
+  private readonly config: SarvamTranslationConfig;
 
   constructor(
-    settings: SarvamTransliterateSettings,
-    config: SarvamTransliterateConfig,
+    settings: SarvamTranslationSettings,
+    config: SarvamTranslationConfig,
   ) {
     this.modelId = "unknown";
     this.settings = settings;
@@ -86,13 +86,11 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
         source_language_code: this.settings.from ?? "auto",
         target_language_code: this.settings.to,
         numerals_format: this.settings.numerals_format ?? "international",
-        ...(this.settings.spoken_form
-          ? {
-              spoken_form: this.settings.spoken_form,
-              spoken_form_numerals_language:
-                this.settings.spoken_form_numerals_language ?? "english",
-            }
-          : {}),
+        enable_preprocessing: this.settings.enable_preprocessing ?? false,
+        output_script: this.settings.output_script ?? null,
+        speaker_gender: this.settings.speaker_gender ?? "Male",
+        mode: this.settings.mode ?? "formal",
+        // model: this.settings.model ?? "male",
       },
       warnings,
     };
@@ -114,13 +112,13 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url({
-        path: "/transliterate",
+        path: "/translate",
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
       failedResponseHandler: sarvamFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        sarvamTransliterateResponseSchema,
+        sarvamTranslationResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -128,7 +126,7 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 
     const { input: rawPrompt, ...rawSettings } = args;
 
-    let text = response.transliterated_text ?? undefined;
+    const text = response.translated_text ?? undefined;
 
     return {
       text,
@@ -150,12 +148,12 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1["doStream"]>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
-    throw new Error("Transliterate feature doesn't streaming yet");
+    throw new Error("Translation feature doesn't streaming yet");
   }
 }
 
-const sarvamTransliterateResponseSchema = z.object({
-  transliterated_text: z.string().nullish(),
+const sarvamTranslationResponseSchema = z.object({
+  translated_text: z.string().nullish(),
   source_language_code: SarvamLanguageCodeSchema.nullable(),
   request_id: z.string().nullish(),
 });

@@ -1,26 +1,26 @@
 import {
-  LanguageModelV1,
-  SpeechModelV1,
-  NoSuchModelError,
-  ProviderV1,
-  TranscriptionModelV1,
+    LanguageModelV1,
+    SpeechModelV1,
+    TranscriptionModelV1
 } from "@ai-sdk/provider";
 import {
-  FetchFunction,
-  loadApiKey,
-  withoutTrailingSlash,
+    FetchFunction,
+    loadApiKey,
+    withoutTrailingSlash,
 } from "@ai-sdk/provider-utils";
 import { SarvamChatLanguageModel } from "./sarvam-chat-language-model";
 import { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
-import { SarvamTranscriptionCallOptions, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
+import { SarvamLanguageCode } from "./sarvam-config";
 import {
-  SarvamTranscriptionModel,
-} from "./sarvam-transcription-model";
+    SarvamSpeechModel,
+} from "./sarvam-speech-model";
 import { SarvamSpeechModelId, SarvamSpeechSettings } from "./sarvam-speech-settings";
 import {
-  SarvamSpeechModel,
-} from "./sarvam-speech-model";
-import { SarvamLanguageCode } from "./sarvam-config";
+    SarvamTranscriptionModel,
+} from "./sarvam-transcription-model";
+import { SarvamTranscriptionCallOptions, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
+import { SarvamTranslationModel } from "./sarvam-translation-model";
+import { SarvamTranslationSettings } from "./sarvam-translation-settings";
 import { SarvamTransliterateModel } from "./sarvam-transliterate-model";
 import { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
 
@@ -57,9 +57,14 @@ export interface SarvamProvider {
   ): SpeechModelV1;
 
   /**
-  * Creates an Sarvam for transliterate.
+  * Creates an Sarvam model for transliterate.
   */
   transliterate(settings: SarvamTransliterateSettings): LanguageModelV1;
+
+  /**
+  * Creates an Sarvam model for translation.
+  */
+  translation(settings: SarvamTranslationSettings): LanguageModelV1;
 }
 
 export interface SarvamProviderSettings {
@@ -155,7 +160,7 @@ export function createSarvam(
     settings?: SarvamSpeechSettings,
   ) =>
     new SarvamSpeechModel(modelId, languageCode, {
-      provider: `sarvam.speech`,
+      provider: "sarvam.speech",
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -176,6 +181,20 @@ export function createSarvam(
       },
     );
 
+  const createTranslationModel = (settings: SarvamTranslationSettings) =>
+    new SarvamTranslationModel(
+      {
+        to: settings.to,
+        from: settings.from,
+      },
+      {
+        provider: "sarvam.translation",
+        url: ({ path }) => `${baseURL}${path}`,
+        headers: getHeaders,
+        fetch: options.fetch,
+      },
+    );
+
   const provider = (
     modelId: SarvamChatModelId,
     settings?: SarvamChatSettings,
@@ -186,6 +205,7 @@ export function createSarvam(
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.transliterate = createTransliterateModel;
+  provider.translation = createTranslationModel;
 
   return provider;
 }
