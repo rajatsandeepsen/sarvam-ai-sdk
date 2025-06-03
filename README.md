@@ -69,6 +69,25 @@ const { text } = await transcribe({
 console.log(text); // പാചകം തുടരും സുഹൃത്തുക്കളെ
 ```
 
+## Transliterate
+
+> Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
+
+```ts
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const result = await generateText({
+  model: sarvam.transliterate({
+      from: "en-IN"
+      to: "ml-IN",
+  }),
+  prompt: "eda mone, happy alle?",
+});
+
+console.log(result.text); // എടാ മോനെ, ഹാപ്പി അല്ലേ?
+```
+
 ## Tool Calling
 
 > [!WARNING]

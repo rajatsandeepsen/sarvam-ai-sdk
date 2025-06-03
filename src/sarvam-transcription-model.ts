@@ -13,15 +13,11 @@ import { SarvamConfig, SarvamLanguageCode } from "./sarvam-config";
 import { sarvamFailedResponseHandler } from "./sarvam-error";
 import {
     SarvamProviderOptionsSchema,
+    SarvamTranscriptionCallOptions,
     SarvamTranscriptionModelId,
 } from "./sarvam-transcription-settings";
 
 // https://docs.sarvam.ai/api-reference-docs/speech-to-text/transcribe
-
-export type SarvamTranscriptionCallOptions = z.infer<
-    typeof SarvamProviderOptionsSchema
->;
-
 interface SarvamTranscriptionModelConfig extends SarvamConfig {
     _internal?: {
         currentDate?: () => Date;

@@ -10,21 +10,18 @@ import type { SarvamConfig, SarvamLanguageCode } from "./sarvam-config";
 import { sarvamFailedResponseHandler } from "./sarvam-error";
 import {
     SarvamProviderOptionsSchema,
+    SarvamSpeechSettings,
     SpeakerSchema,
     type SarvamSpeechModelId,
 } from "./sarvam-speech-settings";
 import type { SarvamSpeechAPITypes } from "./sarvam-api-types";
 import { z } from "zod";
 
-export type SarvamSpeechCallOptions = z.infer<
-    typeof SarvamProviderOptionsSchema
->;
-
 interface SarvamSpeechModelConfig extends SarvamConfig {
     _internal?: {
         currentDate?: () => Date;
     };
-    speech?: SarvamSpeechCallOptions;
+    speech?: SarvamSpeechSettings;
 }
 
 export class SarvamSpeechModel implements SpeechModelV1 {
