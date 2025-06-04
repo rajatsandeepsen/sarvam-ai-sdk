@@ -23,6 +23,7 @@ import { SarvamTranslationModel } from "./sarvam-translation-model";
 import { SarvamTranslationSettings } from "./sarvam-translation-settings";
 import { SarvamTransliterateModel } from "./sarvam-transliterate-model";
 import { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
+import { SarvamLidModel } from "./sarvam-lid-model";
 
 export interface SarvamProvider {
   /**
@@ -65,6 +66,11 @@ export interface SarvamProvider {
   * Creates an Sarvam model for translation.
   */
   translation(settings: SarvamTranslationSettings): LanguageModelV1;
+
+  /**
+  * Creates an Sarvam model for language identification.
+  */
+  languageIdentification(): LanguageModelV1;
 }
 
 export interface SarvamProviderSettings {
@@ -195,6 +201,16 @@ export function createSarvam(
       },
     );
 
+  const createLidModel = () =>
+    new SarvamLidModel(
+      {
+        provider: "sarvam.lid",
+        url: ({ path }) => `${baseURL}${path}`,
+        headers: getHeaders,
+        fetch: options.fetch,
+      },
+    );
+
   const provider = (
     modelId: SarvamChatModelId,
     settings?: SarvamChatSettings,
@@ -206,6 +222,7 @@ export function createSarvam(
   provider.speech = createSpeechModel;
   provider.transliterate = createTransliterateModel;
   provider.translation = createTranslationModel;
+  provider.languageIdentification = createLidModel;
 
   return provider;
 }

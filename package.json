@@ -1,7 +1,7 @@
 {
 	"name": "sarvam-ai-sdk",
 	"description": "Sarvam AI Provider support for AI-SDK",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"license": "Apache-2.0",
 	"sideEffects": false,
 	"main": "./dist/index.js",

@@ -24,3 +24,18 @@ export const SarvamLanguageCodeSchema = z.enum([
     "en-IN",
     "gu-IN",
 ]);
+
+export type SarvamScriptCode = z.infer<typeof SarvamScriptCodeSchema>
+
+export const SarvamScriptCodeSchema = z.enum([
+    "Latn",
+    "Deva",
+    "Beng",
+    "Gujr",
+    "Knda",
+    "Mlym",
+    "Orya",
+    "Guru",
+    "Taml",
+    "Telu",
+])

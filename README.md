@@ -71,7 +71,7 @@ console.log(text); // പാചകം തുടരും സുഹൃത്ത�
 
 ## Translation
 
-> Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
+> NB: Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
 
 ```ts
 import { sarvam } from "sarvam-ai-sdk";
@@ -90,7 +90,7 @@ console.log(result.text); // Shouldn't we be careful about this, Ambane?
 
 ## Transliterate
 
-> Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
+> NB: Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.
 
 ```ts
 import { sarvam } from "sarvam-ai-sdk";
@@ -107,6 +107,22 @@ const result = await generateText({
 console.log(result.text); // എടാ മോനെ, ഹാപ്പി അല്ലേ?
 ```
 
+## Language Identification
+
+> NB: Only identifies `prompt` and `role:user` messages, not `system` not `assistant`.
+
+```ts
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText } from "ai";
+
+const result = await generateText({
+    model: sarvam.languageIdentification(),
+    prompt: "ബുദ്ധിയാണ് സാറേ ഇവൻ്റെ മെയിൻ",
+});
+
+console.log(result.text); // ml-IN
+```
+
 ## Tool Calling
 
 > [!WARNING]
@@ -120,7 +136,7 @@ import { sarvam } from "sarvam-ai-sdk";
 
 const result = await generateText({
   model: sarvam("sarvam-m", {
-    simulateToolCalling: true, // ⚠️ important
+    simulate: "tool-calling" // ⚠️ important
   }),
   tools: {
     weather: tool({
@@ -139,6 +155,32 @@ const result = await generateText({
 });
 
 console.log(result.toolResults);
+```
+## Generate JSON object
+
+> [!WARNING]
+> Latest `sarvam-m` model isn't trained on native JSON object generation. So we simulate this with prompt engineering technique.
+
+```ts
+import { z } from "zod";
+import { sarvam } from "sarvam-ai-sdk";
+import { generateObject } from 'ai';
+
+const { object } = await generateObject({
+  model: sarvam("sarvam-m", {
+    simulate: "json-object" // ⚠️ important
+  }),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a South Indian recipe, in Malayalam',
+});
+
+console.log(object);
 ```
 
 ## Documentation

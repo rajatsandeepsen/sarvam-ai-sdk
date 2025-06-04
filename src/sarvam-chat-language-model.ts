@@ -30,7 +30,9 @@ import {
 } from "./sarvam-error";
 import {
   extractToolCallData,
+  parseJSON,
   prepareTools,
+  simulateJsonSchema,
   simulateToolCalling,
 } from "./sarvam-prepare-tools";
 
@@ -89,8 +91,22 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
     stream: boolean;
   }) {
     const type = mode.type;
+    const simulate = this.settings.simulate
+
+    if (type === "object-json" && simulate === "tool-calling")
+        throw new Error('Use { simulate: "json-object" } with generateObject()')
+
+    if (type === "regular" && simulate === "json-object")
+        throw new Error('Use { simulate: "tool-calling" } with generateText()')
 
     const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (stream) {
+      warnings.push({
+        type: "other",
+        message: "Streaming is still experimental for Sarvam",
+      });
+    }
 
     if (topK != null) {
       warnings.push({
@@ -121,7 +137,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 
     const baseArgs = (
       prompt: LanguageModelV1Prompt,
-      fakeToolSystemPrompt?: string,
+      extraSystemPrompt?: string,
     ) => ({
       // model id:
       model: this.modelId,
@@ -150,7 +166,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
       reasoning_format: sarvamOptions?.reasoningFormat,
 
       // messages:
-      messages: convertToSarvamChatMessages(prompt, fakeToolSystemPrompt),
+      messages: convertToSarvamChatMessages(prompt, extraSystemPrompt),
     });
 
     switch (type) {
@@ -159,14 +175,14 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
           mode,
         });
 
-        const fakeSystemPrompt =
-          tools && this.settings.simulateToolCalling
+        const extraSystemPrompt =
+          tools && simulate === "tool-calling"
             ? await simulateToolCalling(tools)
             : undefined;
 
         return {
           args: {
-            ...baseArgs(prompt, fakeSystemPrompt),
+            ...baseArgs(prompt, extraSystemPrompt),
             tools,
             tool_choice,
           },
@@ -175,9 +191,13 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
       }
 
       case "object-json": {
+        const extraSystemPrompt = simulate === "json-object"
+          ? simulateJsonSchema()
+          : undefined;
+
         return {
           args: {
-            ...baseArgs(prompt),
+            ...baseArgs(prompt, extraSystemPrompt),
             response_format:
               // json object response format is not supported for streaming:
               stream === false ? { type: "json_object" } : undefined,
@@ -257,17 +277,27 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
       args: toolCall.function.arguments!,
     })) as LanguageModelV1FunctionToolCall[] | undefined;
 
-    // simulate fake tool calling
-    if (this.settings.simulateToolCalling) {
-      if (
-        text &&
-        text.length !== 0 &&
-        (!toolCalls || toolCalls?.length === 0)
-      ) {
-        const newTools = extractToolCallData(text);
-        if (newTools) {
-          toolCalls = [newTools];
-          text = undefined;
+    // simulate tool calling through prompt engineering
+    if (this.settings.simulate === "tool-calling") {
+        if (text && text.length !== 0) {
+          const jsonObject = parseJSON(text);
+          if (jsonObject) {
+            const newTools = extractToolCallData(jsonObject);
+            if (newTools) {
+              toolCalls = [newTools];
+              text = undefined;
+            }
+          }
+        }
+    }
+
+    // simulate JSON object generation through prompt engineering
+    if (this.settings.simulate === "json-object") {
+      if (text && text.length !== 0) {
+        const jsonObject = parseJSON(text);
+        if (jsonObject) {
+          const newTools = extractToolCallData(jsonObject);
+            text = JSON.stringify(jsonObject);
         }
       }
     }

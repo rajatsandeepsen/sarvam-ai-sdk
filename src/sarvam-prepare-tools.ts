@@ -154,28 +154,40 @@ const myChoice: YourToolChoices = {
 };
 
 export const extractToolCallData = (
-  text: string,
+  jsonObject: object,
 ): LanguageModelV1FunctionToolCall | void => {
-  const jsonRegex = /\{(?:[^{}]*|\{[^{}]*\})*\}/g;
-  const jsonMatches = text.match(jsonRegex);
 
-  if (jsonMatches && jsonMatches[0]) {
-    try {
-      type ToolFunction = {
-        toolName: string;
-        toolData: any;
-      };
-      const toolFunction = JSON.parse(jsonMatches[0]) as ToolFunction;
+    type ToolFunction = {
+      toolName: string;
+      toolData: any;
+    };
+    const toolFunction = jsonObject as ToolFunction
 
-      if (!("toolName" in toolFunction)) return;
-      if (!("toolData" in toolFunction)) return;
+    if (!("toolName" in toolFunction)) return;
+    if (!("toolData" in toolFunction)) return;
 
-      return {
+    return {
         args: JSON.stringify(toolFunction.toolData),
         toolCallId: generateId(),
         toolCallType: "function",
         toolName: toolFunction.toolName,
-      };
-    } catch (error) {}
-  }
+    };
+
 };
+
+export const parseJSON = <T extends object>(
+    text: string,
+):T | void => {
+    const jsonRegex = /\{(?:[^{}]*|\{[^{}]*\})*\}/g;
+    const jsonMatches = text.match(jsonRegex);
+
+    if (jsonMatches && jsonMatches[0]) {
+        try {
+            const jsonObject = JSON.parse(jsonMatches[0])
+            return jsonObject
+        }
+        catch (error) {}
+    }
+}
+
+export const simulateJsonSchema = () => "If user doen't specify, make sure to translate json data content into pure English."
