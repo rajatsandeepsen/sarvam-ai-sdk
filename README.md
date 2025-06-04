@@ -69,6 +69,21 @@ const { text } = await transcribe({
 console.log(text); // പാചകം തുടരും സുഹൃത്തുക്കളെ
 ```
 
+## Speech-to-Text-Translate
+
+```ts
+import { sarvam } from "sarvam-ai-sdk";
+import { experimental_transcribe as transcribe } from "ai";
+import { readFile } from "fs/promises";
+
+const result = await transcribe({
+    model: sarvam.speechTranslation("saaras:v2"),
+    audio: await readFile("./src/transcript-test.wav"),
+});
+
+console.log(result.text); // Cooking continues, my friends
+```
+
 ## Translation
 
 > NB: Only transliterates `prompt` and `role:user` messages, not `system` not `assistant`.

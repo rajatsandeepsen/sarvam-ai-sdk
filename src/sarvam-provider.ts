@@ -18,12 +18,13 @@ import { SarvamSpeechModelId, SarvamSpeechSettings } from "./sarvam-speech-setti
 import {
     SarvamTranscriptionModel,
 } from "./sarvam-transcription-model";
-import { SarvamTranscriptionCallOptions, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
+import { SarvamSpeechTranslationModelId, SarvamTranscriptionCallOptions, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
 import { SarvamTranslationModel } from "./sarvam-translation-model";
 import { SarvamTranslationSettings } from "./sarvam-translation-settings";
 import { SarvamTransliterateModel } from "./sarvam-transliterate-model";
 import { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
 import { SarvamLidModel } from "./sarvam-lid-model";
+import { SarvamSpeechTranslationModel } from "./sarvam-speech-translation-model";
 
 export interface SarvamProvider {
   /**
@@ -44,8 +45,20 @@ export interface SarvamProvider {
   */
   transcription(
     modelId: SarvamTranscriptionModelId,
+    /**
+    * Audio source language code
+    *
+    * @default unknown
+    */
     languageCode?: SarvamLanguageCode | "unknown",
     settings?: SarvamTranscriptionCallOptions,
+  ): TranscriptionModelV1;
+
+  /**
+  * Creates a Sarvam model for Speech translation.
+  */
+  speechTranslation(
+    modelId: SarvamSpeechTranslationModelId,
   ): TranscriptionModelV1;
 
   /**
@@ -150,15 +163,22 @@ export function createSarvam(
     modelId: SarvamTranscriptionModelId,
     languageCode: SarvamLanguageCode | "unknown" = "unknown",
     settings?: SarvamTranscriptionCallOptions,
-  ) => {
-    return new SarvamTranscriptionModel(modelId, languageCode, {
+  ) => new SarvamTranscriptionModel(modelId, languageCode, {
       provider: "sarvam.transcription",
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
       transcription: settings,
     });
-  };
+
+  const createSpeechTranslation = (
+    modelId: SarvamTranscriptionModelId
+  ) => new SarvamSpeechTranslationModel(modelId, {
+      provider: "sarvam.transcription",
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   const createSpeechModel = (
     modelId: SarvamSpeechModelId,
@@ -219,6 +239,7 @@ export function createSarvam(
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.transcription = createTranscriptionModel;
+  provider.speechTranslation = createSpeechTranslation;
   provider.speech = createSpeechModel;
   provider.transliterate = createTransliterateModel;
   provider.translation = createTranslationModel;

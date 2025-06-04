@@ -6,6 +6,13 @@ export type SarvamTranscriptionModelId =
     | "saarika:flash"
     | (string & {});
 
+export type SarvamSpeechTranslationModelId =
+    | "saaras:v1"
+    | "saaras:v2"
+    | "saaras:turbo"
+    | "saaras:flash"
+    | (string & {});
+
 export const SarvamProviderOptionsSchema = z.object({
     with_timestamps: z.boolean().nullish().default(false),
     with_diarization: z.boolean().nullish().default(false),
