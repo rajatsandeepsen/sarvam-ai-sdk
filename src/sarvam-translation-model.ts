@@ -29,7 +29,7 @@ export class SarvamTranslationModel implements LanguageModelV1 {
   readonly supportsStructuredOutputs = false;
   readonly defaultObjectGenerationMode = "json";
 
-  readonly modelId: "unknown";
+  readonly modelId: NonNullable<SarvamTranslationSettings["model"]>
   readonly settings: SarvamTranslationSettings;
 
   private readonly config: SarvamTranslationConfig;
@@ -38,7 +38,7 @@ export class SarvamTranslationModel implements LanguageModelV1 {
     settings: SarvamTranslationSettings,
     config: SarvamTranslationConfig,
   ) {
-    this.modelId = "unknown";
+    this.modelId = settings.model ?? "mayura:v1";
     this.settings = settings;
     this.config = config;
   }
@@ -62,11 +62,21 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (this.settings.from !== "auto") {
-      if (this.settings.to !== "en-IN" && this.settings.from !== "en-IN")
+    if (this.settings.from === this.settings.to) {
         throw new Error(
-          "Sarvam doesn't support Indic-Indic Transliteration yet",
+        "Source and target languages code must be different.",
         );
+    }
+
+    if (this.modelId === "sarvam-translate:v1") {
+        if ((this.settings.mode ?? "formal") !== "formal")
+            throw new Error(
+            "Sarvam 'sarvam-translate:v1' only support mode formal.",
+            );
+        if ((this.settings.from ?? "auto") === "auto")
+            throw new Error(
+            "Sarvam 'sarvam-translate:v1' requires source language code.",
+            );
     }
 
     if (type !== "regular") {
@@ -90,7 +100,7 @@ export class SarvamTranslationModel implements LanguageModelV1 {
         output_script: this.settings.output_script ?? null,
         speaker_gender: this.settings.speaker_gender ?? "Male",
         mode: this.settings.mode ?? "formal",
-        // model: this.settings.model ?? "male",
+        model: this.modelId,
       },
       warnings,
     };
@@ -148,7 +158,7 @@ export class SarvamTranslationModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1["doStream"]>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
-    throw new Error("Translation feature doesn't streaming yet");
+    throw new Error("Translation feature doesn't support streaming yet");
   }
 }
 

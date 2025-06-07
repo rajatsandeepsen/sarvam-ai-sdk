@@ -94,8 +94,8 @@ import { generateText } from "ai";
 
 const result = await generateText({
     model: sarvam.translation({
+        "from": "ml-IN",
         "to": "en-IN",
-        "from": "ml-IN"
     }),
     prompt: "ഇതൊക്കെ ശ്രദ്ധിക്കണ്ടേ അംബാനെ?",
 });
@@ -113,7 +113,7 @@ import { generateText } from "ai";
 
 const result = await generateText({
   model: sarvam.transliterate({
-      from: "en-IN"
+      from: "en-IN",
       to: "ml-IN",
   }),
   prompt: "eda mone, happy alle?",

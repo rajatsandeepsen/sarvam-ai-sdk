@@ -47,11 +47,14 @@ export interface SarvamTranslationSettings {
 
     /**
     * Specifies the translation model to use.
-    * Currently, only one model is supported: `mayura:v1`.
     *
-    * @deprecated by the end of January; avoid including it in your requests
+    * mayura:v1: Supports 12 languages with all modes, output scripts, and automatic language detection.
+    *
+    * sarvam-translate:v1: Supports all 22 scheduled languages of India, formal mode only
+    *
+    * @default mayura:v1
     */
-    model?: "mayura:v1"
+    model?: "mayura:v1" | "sarvam-translate:v1"
 
     /**
     * Enables custom preprocessing of the input text, which can result in better translations.

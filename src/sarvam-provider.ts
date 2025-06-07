@@ -195,10 +195,7 @@ export function createSarvam(
 
   const createTransliterateModel = (settings: SarvamTransliterateSettings) =>
     new SarvamTransliterateModel(
-      {
-        to: settings.to,
-        from: settings.from,
-      },
+        settings,
       {
         provider: "sarvam.transliterate",
         url: ({ path }) => `${baseURL}${path}`,
@@ -209,10 +206,7 @@ export function createSarvam(
 
   const createTranslationModel = (settings: SarvamTranslationSettings) =>
     new SarvamTranslationModel(
-      {
-        to: settings.to,
-        from: settings.from,
-      },
+        settings,
       {
         provider: "sarvam.translation",
         url: ({ path }) => `${baseURL}${path}`,

@@ -1,9 +1,7 @@
 {
 	"name": "sarvam-ai-sdk",
 	"description": "Sarvam AI Provider support for AI-SDK",
-	"version": "0.0.7",
-	"license": "Apache-2.0",
-	"sideEffects": false,
+	"version": "0.0.8",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
@@ -56,6 +54,6 @@
 	"bugs": {
 		"url": "https://github.com/rajatsandeepsen/sarvam-ai-sdk/issues"
 	},
-	"keywords": ["ai"],
+	"keywords": ["ai", "ai-sdk", "sarvam", "india", "ai4bharat"],
 	"type": "module"
 }
