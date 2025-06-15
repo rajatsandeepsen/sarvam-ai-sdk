@@ -1,9 +1,9 @@
 {
 	"name": "sarvam-ai-sdk",
 	"description": "Sarvam AI Provider support for AI-SDK",
-	"version": "0.0.8",
+	"version": "0.0.9",
 	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
+	"module": "./dist/index.cjs",
 	"types": "./dist/index.d.ts",
 	"files": ["dist/**/*", "CHANGELOG.md"],
 	"scripts": {
@@ -22,7 +22,7 @@
 		"./package.json": "./package.json",
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs",
+			"import": "./dist/index.cjs",
 			"require": "./dist/index.js"
 		}
 	},
