@@ -1,9 +1,9 @@
 {
 	"name": "sarvam-ai-sdk",
 	"description": "Sarvam AI Provider support for AI-SDK",
-	"version": "0.0.9",
+	"version": "0.1.0",
 	"main": "./dist/index.js",
-	"module": "./dist/index.cjs",
+	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
 	"files": ["dist/**/*", "CHANGELOG.md"],
 	"scripts": {
@@ -22,7 +22,7 @@
 		"./package.json": "./package.json",
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.cjs",
+			"import": "./dist/index.mjs",
 			"require": "./dist/index.js"
 		}
 	},
@@ -54,6 +54,5 @@
 	"bugs": {
 		"url": "https://github.com/rajatsandeepsen/sarvam-ai-sdk/issues"
 	},
-	"keywords": ["ai", "ai-sdk", "sarvam", "india", "ai4bharat"],
-	"type": "module"
+	"keywords": ["ai", "ai-sdk", "sarvam", "india", "ai4bharat"]
 }
