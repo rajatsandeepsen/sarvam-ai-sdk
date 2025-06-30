@@ -123,15 +123,15 @@ export function createSarvam(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? "https://api.sarvam.ai";
 
-  const ApiKey = loadApiKey({
+  const getApiKey = () => loadApiKey({
     apiKey: options.apiKey,
     environmentVariableName: "SARVAM_API_KEY",
     description: "Sarvam",
   });
 
   const getHeaders = () => ({
-    Authorization: `Bearer ${ApiKey}`,
-    "api-subscription-key": ApiKey,
+    Authorization: `Bearer ${getApiKey()}`,
+    "api-subscription-key": getApiKey(),
     ...options.headers,
   });
 
