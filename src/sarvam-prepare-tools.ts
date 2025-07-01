@@ -1,26 +1,17 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FunctionToolCall,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
+  LanguageModelV2ToolCall,
   UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 import { generateId } from "@ai-sdk/provider-utils";
 
-type SarvamTools = Array<{
-  type: "function";
-  function: {
-    name: string;
-    description: string | undefined;
-    parameters: unknown;
-  };
-}>;
-
 export function prepareTools({
-  mode,
+  tools,
+  toolChoice,
 }: {
-  mode: Parameters<LanguageModelV1["doGenerate"]>[0]["mode"] & {
-    type: "regular";
-  };
+  tools: LanguageModelV2CallOptions["tools"];
+  toolChoice?: LanguageModelV2CallOptions["toolChoice"];
 }): {
   tools:
     | undefined
@@ -32,26 +23,31 @@ export function prepareTools({
           parameters: unknown;
         };
       }>;
-  tool_choice:
+  toolChoice:
     | { type: "function"; function: { name: string } }
     | "auto"
     | "none"
     | "required"
     | undefined;
-  toolWarnings: LanguageModelV1CallWarning[];
-  fakeTools?: string;
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  tools = tools?.length ? tools : undefined;
+
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings };
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const toolChoice = mode.toolChoice;
-
-  const sarvamTools: SarvamTools = [];
+  const sarvamTools: Array<{
+    type: "function";
+    function: {
+      name: string;
+      description: string | undefined;
+      parameters: unknown;
+    };
+  }> = [];
 
   for (const tool of tools) {
     if (tool.type === "provider-defined") {
@@ -62,14 +58,14 @@ export function prepareTools({
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.parameters,
+          parameters: tool.inputSchema,
         },
       });
     }
   }
 
   if (toolChoice == null) {
-    return { tools: sarvamTools, tool_choice: undefined, toolWarnings };
+    return { tools: sarvamTools, toolChoice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -78,11 +74,11 @@ export function prepareTools({
     case "auto":
     case "none":
     case "required":
-      return { tools: sarvamTools, tool_choice: type, toolWarnings };
+      return { tools: sarvamTools, toolChoice: type, toolWarnings };
     case "tool":
       return {
         tools: sarvamTools,
-        tool_choice: {
+        toolChoice: {
           type: "function",
           function: {
             name: toolChoice.toolName,
@@ -93,7 +89,7 @@ export function prepareTools({
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }
@@ -102,7 +98,14 @@ export function prepareTools({
 import { compile } from "json-schema-to-typescript";
 
 export const simulateToolCalling = async (
-  tools: SarvamTools,
+  tools: Array<{
+    type: "function";
+    function: {
+      name: string;
+      description: string | undefined;
+      parameters: unknown;
+    };
+  }>,
 ): Promise<string> => {
   const context = [];
   const names = [];
@@ -155,39 +158,35 @@ const myChoice: YourToolChoices = {
 
 export const extractToolCallData = (
   jsonObject: object,
-): LanguageModelV1FunctionToolCall | void => {
+): LanguageModelV2ToolCall | void => {
+  type ToolFunction = {
+    toolName: string;
+    toolData: any;
+  };
+  const toolFunction = jsonObject as ToolFunction;
 
-    type ToolFunction = {
-      toolName: string;
-      toolData: any;
-    };
-    const toolFunction = jsonObject as ToolFunction
+  if (!("toolName" in toolFunction)) return;
+  if (!("toolData" in toolFunction)) return;
 
-    if (!("toolName" in toolFunction)) return;
-    if (!("toolData" in toolFunction)) return;
-
-    return {
-        args: JSON.stringify(toolFunction.toolData),
-        toolCallId: generateId(),
-        toolCallType: "function",
-        toolName: toolFunction.toolName,
-    };
-
+  return {
+    input: JSON.stringify(toolFunction.toolData),
+    toolCallId: generateId(),
+    type: "tool-call",
+    toolName: toolFunction.toolName,
+  };
 };
 
-export const parseJSON = <T extends object>(
-    text: string,
-):T | void => {
-    const jsonRegex = /\{(?:[^{}]*|\{[^{}]*\})*\}/g;
-    const jsonMatches = text.match(jsonRegex);
+export const parseJSON = <T extends object>(text: string): T | void => {
+  const jsonRegex = /\{(?:[^{}]*|\{[^{}]*\})*\}/g;
+  const jsonMatches = text.match(jsonRegex);
 
-    if (jsonMatches && jsonMatches[0]) {
-        try {
-            const jsonObject = JSON.parse(jsonMatches[0])
-            return jsonObject
-        }
-        catch (error) {}
-    }
-}
+  if (jsonMatches && jsonMatches[0]) {
+    try {
+      const jsonObject = JSON.parse(jsonMatches[0]);
+      return jsonObject;
+    } catch (error) {}
+  }
+};
 
-export const simulateJsonSchema = () => "If user doen't specify, make sure to translate json data content into pure English."
+export const simulateJsonSchema = () =>
+  "If user doen't specify, make sure to translate json data content into pure English.";

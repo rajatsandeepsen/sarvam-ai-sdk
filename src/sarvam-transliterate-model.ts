@@ -1,9 +1,9 @@
-import {
-    LanguageModelV1,
-    LanguageModelV1CallWarning
+import type {
+    LanguageModelV2,
+    LanguageModelV2CallWarning
 } from "@ai-sdk/provider";
 import {
-    FetchFunction,
+    type FetchFunction,
     combineHeaders,
     createJsonResponseHandler,
     postJsonToApi
@@ -14,7 +14,7 @@ import { SarvamLanguageCodeSchema } from "./sarvam-config";
 import {
     sarvamFailedResponseHandler
 } from "./sarvam-error";
-import { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
+import type { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
 
 type SarvamTransliterateConfig = {
   provider: string;
@@ -23,11 +23,15 @@ type SarvamTransliterateConfig = {
   fetch?: FetchFunction;
 };
 
-export class SarvamTransliterateModel implements LanguageModelV1 {
-  readonly specificationVersion = "v1";
+export class SarvamTransliterateModel implements LanguageModelV2 {
+  readonly specificationVersion = "v2";
 
   readonly supportsStructuredOutputs = false;
   readonly defaultObjectGenerationMode = "json";
+
+  readonly supportedUrls = {
+      'image/*': [/^https?:\/\/.*$/],
+    };
 
   readonly modelId: "unknown";
   readonly settings: SarvamTransliterateSettings;
@@ -53,14 +57,12 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
   }
 
   private getArgs({
-    mode,
+    stream,
     prompt,
-  }: Parameters<LanguageModelV1["doGenerate"]>[0] & {
+  }: Parameters<LanguageModelV2["doGenerate"]>[0] & {
     stream: boolean;
   }) {
-    const type = mode.type;
-
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (this.settings.from !== "auto") {
       if (this.settings.to !== "en-IN" && this.settings.from !== "en-IN")
@@ -69,8 +71,8 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
         );
     }
 
-    if (type !== "regular") {
-      const _exhaustiveCheck = type;
+    if (stream) {
+      const _exhaustiveCheck = "streaming";
       throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
     }
 
@@ -99,8 +101,8 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1["doGenerate"]>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
+    options: Parameters<LanguageModelV2["doGenerate"]>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
     const { args, warnings, messages } = this.getArgs({
       ...options,
       stream: false,
@@ -131,16 +133,21 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
     let text = response.transliterated_text ?? undefined;
 
     return {
-      text,
-      toolCalls: undefined,
-      reasoning: undefined,
+        content: text ? [{
+            type: "text",
+            text,
+        }] : [],
+      // text,
+      // toolCalls: undefined,
+      // reasoning: undefined,
       finishReason: "unknown",
       usage: {
-        promptTokens: NaN,
-        completionTokens: NaN,
+          inputTokens: NaN,
+          outputTokens: NaN,
+          totalTokens: NaN
       },
-      rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
+      // rawCall: { rawPrompt, rawSettings },
+      // rawResponse: { headers: responseHeaders, body: rawResponse },
       response: undefined,
       warnings,
       request: { body },
@@ -148,8 +155,8 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1["doStream"]>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
+    options: Parameters<LanguageModelV2["doStream"]>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
     throw new Error("Transliterate feature doesn't streaming yet");
   }
 }

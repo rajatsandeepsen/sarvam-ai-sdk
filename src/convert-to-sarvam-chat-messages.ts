@@ -1,12 +1,12 @@
-import {
-  LanguageModelV1Prompt,
+import type {
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
-import { SarvamChatPrompt } from "./sarvam-api-types";
+import type { SarvamChatPrompt } from "./sarvam-api-types";
 
 export function convertToSarvamChatMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
   fakeToolSystemPrompt?: string,
 ): SarvamChatPrompt {
   const messages: SarvamChatPrompt = [];

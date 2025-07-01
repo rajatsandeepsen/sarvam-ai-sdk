@@ -1,6 +1,6 @@
-import {
-  TranscriptionModelV1,
-  TranscriptionModelV1CallWarning,
+import type {
+  TranscriptionModelV2,
+  TranscriptionModelV2CallWarning,
 } from "@ai-sdk/provider";
 import {
   combineHeaders,
@@ -8,9 +8,9 @@ import {
   postFormDataToApi,
 } from "@ai-sdk/provider-utils";
 import { z } from "zod";
-import { SarvamConfig } from "./sarvam-config";
+import type { SarvamConfig } from "./sarvam-config";
 import { sarvamFailedResponseHandler } from "./sarvam-error";
-import { SarvamSpeechTranslationModelId } from "./sarvam-transcription-settings";
+import type { SarvamSpeechTranslationModelId } from "./sarvam-transcription-settings";
 
 // https://docs.sarvam.ai/api-reference-docs/speech-to-text/transcribe
 interface SarvamSpeechTranslationModelConfig extends SarvamConfig {
@@ -19,8 +19,8 @@ interface SarvamSpeechTranslationModelConfig extends SarvamConfig {
   };
 }
 
-export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
-  readonly specificationVersion = "v1";
+export class SarvamSpeechTranslationModel implements TranscriptionModelV2 {
+  readonly specificationVersion = "v2";
 
   constructor(
     readonly modelId: SarvamSpeechTranslationModelId,
@@ -35,8 +35,8 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV1["doGenerate"]>[0]) {
-    const warnings: TranscriptionModelV1CallWarning[] = [];
+  }: Parameters<TranscriptionModelV2["doGenerate"]>[0]) {
+    const warnings: TranscriptionModelV2CallWarning[] = [];
 
     const formData = new FormData();
     const blob =
@@ -52,8 +52,8 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV1["doGenerate"]>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV1["doGenerate"]>>> {
+    options: Parameters<TranscriptionModelV2["doGenerate"]>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV2["doGenerate"]>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
 

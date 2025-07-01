@@ -1,36 +1,36 @@
-import {
-    LanguageModelV1,
-    SpeechModelV1,
-    TranscriptionModelV1
+import type {
+    LanguageModelV2,
+    SpeechModelV2,
+    TranscriptionModelV2
 } from "@ai-sdk/provider";
 import {
-    FetchFunction,
+    type FetchFunction,
     loadApiKey,
     withoutTrailingSlash,
 } from "@ai-sdk/provider-utils";
 import { SarvamChatLanguageModel } from "./sarvam-chat-language-model";
-import { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
-import { SarvamLanguageCode } from "./sarvam-config";
+import type { SarvamChatModelId, SarvamChatSettings } from "./sarvam-chat-settings";
+import type { SarvamLanguageCode } from "./sarvam-config";
+import { SarvamLidModel } from "./sarvam-lid-model";
 import {
     SarvamSpeechModel,
 } from "./sarvam-speech-model";
 import { SarvamSpeechModelId, SarvamSpeechSettings } from "./sarvam-speech-settings";
+import { SarvamSpeechTranslationModel } from "./sarvam-speech-translation-model";
 import {
     SarvamTranscriptionModel,
 } from "./sarvam-transcription-model";
-import { SarvamSpeechTranslationModelId, SarvamTranscriptionCallOptions, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
+import type { SarvamSpeechTranslationModelId, SarvamTranscriptionCallOptions, SarvamTranscriptionModelId } from "./sarvam-transcription-settings";
 import { SarvamTranslationModel } from "./sarvam-translation-model";
-import { SarvamTranslationSettings } from "./sarvam-translation-settings";
+import type { SarvamTranslationSettings } from "./sarvam-translation-settings";
 import { SarvamTransliterateModel } from "./sarvam-transliterate-model";
-import { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
-import { SarvamLidModel } from "./sarvam-lid-model";
-import { SarvamSpeechTranslationModel } from "./sarvam-speech-translation-model";
+import type { SarvamTransliterateSettings } from "./sarvam-transliterate-settings";
 
 export interface SarvamProvider {
   /**
   * Creates a model for text generation.
   */
-  (modelId: SarvamChatModelId, settings?: SarvamChatSettings): LanguageModelV1;
+  (modelId: SarvamChatModelId, settings?: SarvamChatSettings): LanguageModelV2;
 
   /**
   * Creates an Sarvam chat model for text generation.
@@ -38,7 +38,7 @@ export interface SarvamProvider {
   languageModel(
     modelId: SarvamChatModelId,
     settings?: SarvamChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
   * Creates a Sarvam model for transcription.
@@ -52,14 +52,14 @@ export interface SarvamProvider {
     */
     languageCode?: SarvamLanguageCode | "unknown",
     settings?: SarvamTranscriptionCallOptions,
-  ): TranscriptionModelV1;
+  ): TranscriptionModelV2;
 
   /**
   * Creates a Sarvam model for Speech translation.
   */
   speechTranslation(
     modelId: SarvamSpeechTranslationModelId,
-  ): TranscriptionModelV1;
+  ): TranscriptionModelV2;
 
   /**
   * Creates a Sarvam model for speech.
@@ -68,22 +68,22 @@ export interface SarvamProvider {
     modelId: SarvamSpeechModelId,
     languageCode: SarvamLanguageCode,
     settings?: SarvamSpeechSettings,
-  ): SpeechModelV1;
+  ): SpeechModelV2;
 
   /**
   * Creates an Sarvam model for transliterate.
   */
-  transliterate(settings: SarvamTransliterateSettings): LanguageModelV1;
+  transliterate(settings: SarvamTransliterateSettings): LanguageModelV2;
 
   /**
   * Creates an Sarvam model for translation.
   */
-  translation(settings: SarvamTranslationSettings): LanguageModelV1;
+  translation(settings: SarvamTranslationSettings): LanguageModelV2;
 
   /**
   * Creates an Sarvam model for language identification.
   */
-  languageIdentification(): LanguageModelV1;
+  languageIdentification(): LanguageModelV2;
 }
 
 export interface SarvamProviderSettings {
