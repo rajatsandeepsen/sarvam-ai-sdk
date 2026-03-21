@@ -1,0 +1,54 @@
+{
+	"name": "sarvam-ai-sdk",
+	"description": "Sarvam provider support for Vercel's AI-SDK",
+	"version": "0.2.0",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist/**/*"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"build:watch": "tsdown --watch",
+		"type-check": "tsc --noEmit",
+		"check": "biome check"
+	},
+	"exports": {
+		"./package.json": "./package.json",
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./type": {
+			"types": "./dist/type.d.ts"
+		}
+	},
+	"dependencies": {},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.8",
+		"@types/node": "20.17.24",
+		"tsdown": "^0.15.10",
+		"typescript": "5.6.3",
+		"zod": "^3.25.67"
+	},
+	"peerDependencies": {
+		"zod": "^3.0.0"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/rajatsandeepsen/sarvam-ai-sdk.git"
+	},
+	"bugs": {
+		"url": "https://github.com/rajatsandeepsen/sarvam-ai-sdk/issues"
+	},
+	"homepage": "https://ai-sdk.dev/docs",
+	"keywords": ["ai", "ai-sdk", "sarvam", "india", "ai4bharat"]
+}
