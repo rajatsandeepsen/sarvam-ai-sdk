@@ -24,5 +24,5 @@
 		"stripInternal": true
 	},
 	"include": ["."],
-	"exclude": ["*/dist", "dist", "build", "node_modules"]
+	"exclude": ["*/dist", "dist", "build", "test", "node_modules"]
 }
