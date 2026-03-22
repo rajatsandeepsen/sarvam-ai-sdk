@@ -34,7 +34,7 @@
 		"zod": "^3.25.67"
 	},
 	"peerDependencies": {
-		"ai": "^5.0.0",
+		"ai": "4.3.18",
 		"zod": "^3.25.0 || ^4.0.0"
 	},
 	"engines": {
@@ -50,7 +50,7 @@
 	"bugs": {
 		"url": "https://github.com/rajatsandeepsen/sarvam-ai-sdk/issues"
 	},
-	"homepage": "https://ai-sdk.dev/docs",
+	"homepage": "https://v4.ai-sdk.dev/docs",
 	"keywords": [
 		"ai",
 		"ai-sdk",
