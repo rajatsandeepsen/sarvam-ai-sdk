@@ -9,6 +9,9 @@ export type SarvamConfig = {
 	generateId?: () => string;
 };
 
+/**
+ * Specifies the language in BCP-47 format.
+ */
 export type SarvamLanguageCode = z.infer<typeof SarvamLanguageCodeSchema>;
 
 export const SarvamLanguageCodeSchema = z.enum([
@@ -30,13 +33,13 @@ export type MoreSarvamLanguageCode = z.infer<
 >;
 
 export const MoreSarvamLanguageCodeSchema = z.enum([
-	"as-IN",  // Assamese
-	"ur-IN",  // Urdu
-	"ne-IN",  // Nepali
+	"as-IN", // Assamese
+	"ur-IN", // Urdu
+	"ne-IN", // Nepali
 	"kok-IN", // Konkani
-	"ks-IN",  // Kashmiri
-	"sd-IN",  // Sindhi
-	"sa-IN",  // Sanskrit
+	"ks-IN", // Kashmiri
+	"sd-IN", // Sindhi
+	"sa-IN", // Sanskrit
 	"sat-IN", // Santali
 	"mni-IN", // Manipuri
 	"brx-IN", // Bodo
@@ -58,3 +61,31 @@ export const SarvamScriptCodeSchema = z.enum([
 	"Taml",
 	"Telu",
 ]);
+
+export interface SarvamProviderSettings {
+	/**
+	 * URL for the Sarvam API calls.
+	 * @default https://api.sarvam.ai
+	 */
+	baseURL?: string;
+
+	/**
+	 * API key for authenticating requests.
+	 * @default process.env.SARVAM_API_KEY
+	 */
+	apiKey?: string;
+
+	/**
+	 * Custom headers to include in the requests.
+	 * @default
+	 * Authorization: `Bearer ${process.env.SARVAM_API_KEY}`,
+	 * "api-subscription-key": process.env.SARVAM_API_KEY
+	 */
+	headers?: Record<string, string>;
+
+	/**
+	 * Custom fetch implementation. You can use it as a middleware to intercept requests,
+	 * or to provide a custom fetch implementation for e.g. testing.
+	 */
+	fetch?: FetchFunction;
+}

@@ -1,65 +1,72 @@
 import { z } from "zod";
 
-export type SarvamSpeechModelId = "bulbul:v2" | "bulbul:v3" | (string & {});
+/**
+ * Specifies the speech generation model to use.
+ *
+ * - `bulbul:v3`: Latest model with improved quality, 30+ voices, and temperature control
+ * - `bulbul:v2`: Legacy model with pitch and loudness controls
+ */
+export type SpeechModelId = "bulbul:v2" | "bulbul:v3" | (string & {});
+
+const bulbul_v2 = z.enum([
+	// male
+	"abhilash",
+	"karun",
+	"hitesh",
+	// female
+	"anushka",
+	"manisha",
+	"vidya",
+	"arya",
+]);
+
+const bulbul_v3 = z.enum([
+	// male
+	"shubh",
+	"aditya",
+	"rahul",
+	"rohan",
+	"amit",
+	"dev",
+	"ratan",
+	"varun",
+	"manan",
+	"sumit",
+	"kabir",
+	"aayan",
+	"ashutosh",
+	"advait",
+	"anand",
+	"tarun",
+	"sunny",
+	"mani",
+	"gokul",
+	"vijay",
+	"mohit",
+	"rehan",
+	"soham",
+	// female
+	"ritu",
+	"priya",
+	"neha",
+	"pooja",
+	"simran",
+	"kavya",
+	"ishita",
+	"shreya",
+	"roopa",
+	"amelia",
+	"sophia",
+	"tanya",
+	"shruti",
+	"suhani",
+	"kavitha",
+	"rupali",
+]);
 
 export type SarvamSpeechVoices = z.infer<typeof SpeakerSchema>;
 
-export const SpeakerSchema = z
-	.enum([
-		// male bulbul:v2
-		"abhilash",
-		"karun",
-		"hitesh",
-
-		// female bulbul:v2
-		"anushka",
-		"manisha",
-		"vidya",
-		"arya",
-
-		// male bulbul:v3
-		"shubh",
-		"aditya",
-		"rahul",
-		"rohan",
-		"amit",
-		"dev",
-		"ratan",
-		"varun",
-		"manan",
-		"sumit",
-		"kabir",
-		"aayan",
-		"ashutosh",
-		"advait",
-		"anand",
-		"tarun",
-		"sunny",
-		"mani",
-		"gokul",
-		"vijay",
-		"mohit",
-		"rehan",
-		"soham",
-
-		// female bulbul:v3
-		"ritu",
-		"priya",
-		"neha",
-		"pooja",
-		"simran",
-		"kavya",
-		"ishita",
-		"shreya",
-		"roopa",
-		"amelia",
-		"sophia",
-		"tanya",
-		"shruti",
-		"suhani",
-		"kavitha",
-		"rupali",
-	])
+export const SpeakerSchema = z.union([bulbul_v2, bulbul_v3]);
 
 export const outputAudioCodecSchema = z.enum([
 	"mp3",
@@ -76,22 +83,23 @@ export const outputAudioCodecSchema = z.enum([
 export const SarvamProviderOptionsSchema = z
 	.object({
 		speaker: SpeakerSchema,
-		pitch: z.number().min(-0.75).max(0.75).default(0.0),
-		pace: z.number().min(0.5).max(2.0).default(1.0),
-		loudness: z.number().min(0.3).max(3.0).default(1.0),
-		speech_sample_rate: z
-			.union([
-				z.literal(8000),
-				z.literal(16000),
-				z.literal(22050),
-				z.literal(24000),
-			])
-			.default(22050),
-		enable_preprocessing: z.boolean().default(false),
-		output_audio_codec: outputAudioCodecSchema.optional(),
-		temperature: z.number().min(0.01).max(2).default(0.6),
-		dict_id: z.string().optional(),
-		enable_cached_responses: z.boolean().default(false),
+		pitch: z.number().min(-0.75).max(0.75),
+		pace: z.number().min(0.5).max(3.0),
+		loudness: z.number().min(0.3).max(3.0),
+		speech_sample_rate: z.union([
+			z.literal(8000),
+			z.literal(16000),
+			z.literal(22050),
+			z.literal(24000),
+			z.literal(32000),
+			z.literal(44100),
+			z.literal(48000),
+		]),
+		enable_preprocessing: z.boolean(),
+		output_audio_codec: outputAudioCodecSchema,
+		temperature: z.number().min(0.01).max(2),
+		dict_id: z.string(),
+		enable_cached_responses: z.boolean(),
 	})
 	.partial();
 
@@ -102,52 +110,65 @@ export const SarvamProviderOptionsSchema = z
  * using the Sarvam Text-to-Speech API. Each property corresponds to a specific
  * feature or parameter supported by the API.
  */
-export type SarvamSpeechSettings = {
+export type SpeechSettings<T extends SpeechModelId = SpeechModelId> = {
 	/**
 	 * The speaker voice to be used for the output audio.
 	 *
 	 * @default
-	 * - "shubh" (Male voice for bulbul:v3)
-	 * - "anushka" (Female voice for bulbul:v2)
-	 * - "meera" (Female voice for bulbul:v1)
+	 * - `bulbul:v3`: "shubh" (Male voice)
+	 * - `bulbul:v2`: "anushka" (Female voice)
 	 */
-	speaker?: SarvamSpeechVoices;
+	speaker?: z.infer<
+		T extends "bulbul:v3" ? typeof bulbul_v3 : typeof bulbul_v2
+	>;
 
 	/**
 	 * Controls the pitch of the audio.
+	 *
+	 * This parameter is only supported for bulbul:v2. It is NOT supported for bulbul:v3.
 	 *
 	 * @default 0.0
 	 * @example -0.5 (Deeper voice)
 	 * @example 0.5 (Sharper voice)
 	 */
-	pitch?: number;
+	pitch?: T extends "bulbul:v2" ? number : never;
 
 	/**
-	 * Controls the speed of the audio.
+	 * Controls the speed of the audio. Any number inbetween `0.3 - 3`
 	 *
 	 * @default 1.0
 	 * @example 0.5 (Slower speech)
 	 * @example 2.0 (Faster speech)
+	 *
+	 * - bulbul:v3: 0.5 to 2.0
+	 * - bulbul:v2: 0.3 to 3.0
 	 */
 	pace?: number;
 
 	/**
-	 * Controls the loudness of the audio.
+	 * Controls the loudness of the audio. Any number inbetween `0.3 - 3`
 	 *
 	 * @default 1.0
 	 * @example 0.3 (Quieter audio)
 	 * @example 2.5 (Louder audio)
+	 *
+	 * This parameter is only supported for bulbul:v2. It is NOT supported for bulbul:v3.
 	 */
-	loudness?: number;
+	loudness?: T extends "bulbul:v2" ? number : never;
 
 	/**
 	 * Specifies the sample rate of the output audio.
 	 *
-	 * @default 22050
+	 * @default 24000
 	 * @example 8000 (Low-quality audio)
 	 * @example 24000 (High-quality audio)
 	 */
-	speech_sample_rate?: 8000 | 16000 | 22050 | 24000;
+	speech_sample_rate?:
+		| 8000
+		| 16000
+		| 22050
+		| 24000
+		| (T extends "bulbul:v3" ? 32000 | 44100 | 48000 : never);
 
 	/**
 	 * Enables preprocessing for normalization of English words and numeric entities
@@ -157,32 +178,24 @@ export type SarvamSpeechSettings = {
 	 * @example true (Enable preprocessing)
 	 * @example false (Disable preprocessing)
 	 */
-	enable_preprocessing?: boolean;
+	enable_preprocessing?: T extends "bulbul:v2" ? boolean : never;
 
 	/**
 	 * Specifies the audio codec for the output audio file.
 	 * Different codecs offer various compression and quality characteristics.
 	 */
-	output_audio_codec?:
-		| "mp3"
-		| "linear16"
-		| "mulaw"
-		| "alaw"
-		| "opus"
-		| "flac"
-		| "aac"
-		| "wav";
+	output_audio_codec?: z.infer<typeof outputAudioCodecSchema>;
 	/**
 	 * Temperature controls how much randomness and expressiveness the TTS model uses while generating speech.
 	 * Lower values produce more stable and consistent output,
 	 * while higher values sound more expressive but may introduce artifacts or errors.
 	 *
-	 * Any number inbetween 0.01 - 2
+	 * Any number inbetween `0.01 - 2`
 	 * @default 0.6
 	 *
 	 * Note: This parameter is only supported for bulbul:v3. It has no effect on bulbul:v2.
 	 */
-	temperature?: number;
+	temperature?: T extends "bulbul:v3" ? number : never;
 
 	/**
 	 * The ID of a pronunciation dictionary to apply during synthesis.
@@ -190,7 +203,7 @@ export type SarvamSpeechSettings = {
 	 *
 	 * Only supported by bulbul:v3.
 	 */
-	dict_id?: string;
+	dict_id?: T extends "bulbul:v3" ? string : never;
 
 	/**
 	 * Enable caching for the request. When enabled, identical requests will return cached audio instead of regenerating.
@@ -199,5 +212,10 @@ export type SarvamSpeechSettings = {
 	 *
 	 * Currently in beta and only available for bulbul:v1 and bulbul:v2 models.
 	 */
-	enable_cached_responses?: boolean;
+	enable_cached_responses?: T extends "bulbul:v3" ? never : boolean;
 };
+
+export const sarvamSpeechResponseSchema = z.object({
+	request_id: z.string(),
+	audios: z.array(z.string()),
+});

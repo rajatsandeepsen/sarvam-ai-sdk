@@ -7,11 +7,13 @@ import {
 	createJsonResponseHandler,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import { z } from "zod";
 import { convertToChatMessages } from "../chat/convert-to-chat-messages";
-import { type SarvamConfig, SarvamLanguageCodeSchema } from "../config";
+import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
-import type { TransliterateSettings } from "./transliterate-settings";
+import {
+	sarvamTransliterateResponseSchema,
+	type TransliterateSettings,
+} from "./transliterate-settings";
 
 export class SarvamTransliterateModel implements LanguageModelV1 {
 	readonly specificationVersion = "v1";
@@ -141,9 +143,3 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 		throw new Error("Transliterate feature doesn't streaming yet");
 	}
 }
-
-const sarvamTransliterateResponseSchema = z.object({
-	transliterated_text: z.string().nullish(),
-	source_language_code: SarvamLanguageCodeSchema.nullable(),
-	request_id: z.string().nullish(),
-});

@@ -8,11 +8,15 @@ import {
 	parseProviderOptions,
 	postFormDataToApi,
 } from "@ai-sdk/provider-utils";
-import type { SarvamConfig, SarvamLanguageCode } from "../config";
+import type {
+	MoreSarvamLanguageCode,
+	SarvamConfig,
+	SarvamLanguageCode,
+} from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
-	type TranscriptionCallOptions,
 	type TranscriptionModelId,
+	type TranscriptionSettings,
 	transcriptionProviderOptionsSchema,
 	transcriptionResponseSchema,
 } from "./transcription-settings";
@@ -22,7 +26,7 @@ interface TranscriptionModelConfig extends SarvamConfig {
 	_internal?: {
 		currentDate?: () => Date;
 	};
-	transcription?: TranscriptionCallOptions;
+	transcription?: TranscriptionSettings;
 }
 
 export class SarvamTranscriptionModel implements TranscriptionModelV1 {
@@ -30,7 +34,10 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
 
 	constructor(
 		readonly modelId: TranscriptionModelId,
-		readonly languageCode: SarvamLanguageCode | "unknown",
+		readonly languageCode:
+			| SarvamLanguageCode
+			| MoreSarvamLanguageCode
+			| "unknown",
 		private readonly config: TranscriptionModelConfig,
 	) {}
 
@@ -109,8 +116,8 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
 			segments: response.timestamps
 				? response.timestamps.words.map((word, index) => ({
 						text: word,
-						startSecond: response.timestamps!.start_time_seconds[index],
-						endSecond: response.timestamps!.end_time_seconds[index],
+						startSecond: response.timestamps?.start_time_seconds[index] ?? NaN,
+						endSecond: response.timestamps?.end_time_seconds[index] ?? NaN,
 					}))
 				: [],
 			language: response.language_code ? response.language_code : undefined,

@@ -7,14 +7,10 @@ import {
 	createJsonResponseHandler,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import { z } from "zod";
 import { convertToChatMessages } from "../chat/convert-to-chat-messages";
-import {
-	type SarvamConfig,
-	SarvamLanguageCodeSchema,
-	SarvamScriptCodeSchema,
-} from "../config";
+import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
+import { sarvamLidResponseSchema } from "./lid-settings";
 
 export class SarvamLidModel implements LanguageModelV1 {
 	readonly specificationVersion = "v1";
@@ -125,9 +121,3 @@ export class SarvamLidModel implements LanguageModelV1 {
 		throw new Error("Language Identification feature doesn't streaming yet");
 	}
 }
-
-const sarvamLidResponseSchema = z.object({
-	script_code: SarvamScriptCodeSchema.nullish(),
-	language_code: SarvamLanguageCodeSchema.nullable(),
-	request_id: z.string().nullish(),
-});

@@ -1,18 +1,24 @@
 import { generateText } from "ai";
-import { sarvam } from "../src";
+import { createSarvam, sarvam } from "../src";
+
+// const sarvam = createSarvam({
+// 	apiKey: process.env.SARVAM_API_KEY!,
+// });
 
 const { text } = await generateText({
-	model: sarvam("sarvam-30b"),
+	model: sarvam("sarvam-105b"),
 	prompt: "Translate this to malayalam: 'Keep cooking, guys'",
 });
 
 console.log({ text }); // പാചകം തുടരൂ, സുഹൃത്തുക്കളേ
 
+// throw new Error("Stop here");
+
 import { experimental_generateSpeech as generateSpeech } from "ai";
 import { writeFile } from "fs/promises";
 
 const { audio } = await generateSpeech({
-	model: sarvam.speech("bulbul:v3", "ml-IN"),
+	model: sarvam.speech("bulbul:v2", "ml-IN"),
 	text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
 });
 
@@ -24,7 +30,7 @@ import { experimental_transcribe as transcribe } from "ai";
 import { readFile } from "fs/promises";
 
 const { text: transcription } = await transcribe({
-	model: sarvam.transcription("saarika:v2.5", "ml-IN"),
+	model: sarvam.transcription("saaras:v3"),
 	audio: await readFile("./test/transcript-test.wav"),
 });
 

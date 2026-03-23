@@ -5,22 +5,22 @@ import {
 	parseProviderOptions,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import { z } from "zod";
 import type { SarvamConfig, SarvamLanguageCode } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
 	outputAudioCodecSchema,
 	SarvamProviderOptionsSchema,
-	type SarvamSpeechModelId,
-	type SarvamSpeechSettings,
 	SpeakerSchema,
+	type SpeechModelId,
+	type SpeechSettings,
+	sarvamSpeechResponseSchema,
 } from "./speech-settings";
 
-interface SarvamSpeechModelConfig extends SarvamConfig {
+interface SpeechModelConfig extends SarvamConfig {
 	_internal?: {
 		currentDate?: () => Date;
 	};
-	speech?: SarvamSpeechSettings;
+	speech?: SpeechSettings;
 }
 
 export class SarvamSpeechModel implements SpeechModelV1 {
@@ -31,9 +31,9 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 	}
 
 	constructor(
-		readonly modelId: SarvamSpeechModelId,
+		readonly modelId: SpeechModelId,
 		readonly languageCode: SarvamLanguageCode,
-		private readonly config: SarvamSpeechModelConfig,
+		private readonly config: SpeechModelConfig,
 	) {}
 
 	private getArgs({
@@ -58,7 +58,7 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 			schema: SarvamProviderOptionsSchema,
 		});
 
-		const getSpeaker = (): SarvamSpeechSettings["speaker"] => {
+		const getSpeaker = (): SpeechSettings["speaker"] => {
 			if (voice) {
 				return SpeakerSchema.parse(voice);
 			}
@@ -129,10 +129,7 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 			body: requestBody,
 			failedResponseHandler: sarvamFailedResponseHandler,
 			successfulResponseHandler: createJsonResponseHandler(
-				z.object({
-					request_id: z.string(),
-					audios: z.array(z.string()),
-				}),
+				sarvamSpeechResponseSchema,
 			),
 			abortSignal: options.abortSignal,
 			fetch: this.config.fetch,

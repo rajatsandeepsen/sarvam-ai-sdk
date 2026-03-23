@@ -1,6 +1,7 @@
-import type { SarvamLanguageCode } from "../config";
+import z from "zod";
+import { type SarvamLanguageCode, SarvamLanguageCodeSchema } from "../config";
 
-export interface TransliterateSettings {
+export type TransliterateSettings = {
 	/**
 	 * The language code of the input text. This specifies the source language for transliteration.
 	 *
@@ -44,4 +45,10 @@ export interface TransliterateSettings {
     * @default "native"
     */
 	spoken_form_numerals_language?: "english" | "native";
-}
+};
+
+export const sarvamTransliterateResponseSchema = z.object({
+	transliterated_text: z.string().nullish(),
+	source_language_code: SarvamLanguageCodeSchema.nullish(),
+	request_id: z.string().nullish(),
+});

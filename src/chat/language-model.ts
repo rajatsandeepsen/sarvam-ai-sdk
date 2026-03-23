@@ -12,7 +12,6 @@ import {
 	combineHeaders,
 	createEventSourceResponseHandler,
 	createJsonResponseHandler,
-	type FetchFunction,
 	generateId,
 	isParsableJson,
 	type ParseResult,
