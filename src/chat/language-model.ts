@@ -18,12 +18,18 @@ import {
 	parseProviderOptions,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import { z } from "zod";
+import type { z } from "zod";
 import type { SarvamConfig } from "../config";
-import { sarvamErrorDataSchema, sarvamFailedResponseHandler } from "../error";
+import { sarvamFailedResponseHandler } from "../error";
 import { convertToChatMessages } from "./convert-to-chat-messages";
 import { parseInnerJSON, prepareTools } from "./prepare-tools";
-import type { ChatModelId, ChatSettings } from "./settings";
+import {
+	type ChatModelId,
+	type ChatSettings,
+	chatChunkSchema,
+	chatResponseSchema,
+	chatSettingsSchema,
+} from "./settings";
 import { getResponseMetadata, mapSarvamFinishReason } from "./utils";
 
 export class SarvamChatLanguageModel implements LanguageModelV1 {
@@ -52,8 +58,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 	}
 
 	get supportsImageUrls(): boolean {
-		// image urls can be sent if downloadImages is disabled (default):
-		return !this.settings.downloadImages;
+		return false;
 	}
 
 	private async getArgs({
@@ -77,70 +82,45 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 
 		const warnings: LanguageModelV1CallWarning[] = [];
 
-		if (stream) {
-			warnings.push({
-				type: "other",
-				message: "Streaming is still experimental for Sarvam",
-			});
-		}
-
-		if (topK != null) {
+		if (topK) {
 			warnings.push({
 				type: "unsupported-setting",
 				setting: "topK",
 			});
 		}
 
-		if (
-			responseFormat != null &&
-			responseFormat.type === "json" &&
-			responseFormat.schema != null
-		) {
-			warnings.push({
-				type: "unsupported-setting",
-				setting: "responseFormat",
-				details: "JSON response format schema is not supported",
-			});
-		}
-
 		const sarvamOptions = parseProviderOptions({
 			provider: "sarvam",
-			providerOptions: providerMetadata,
-			schema: z.object({
-				reasoningFormat: z.enum(["parsed", "raw", "hidden"]).nullish(),
-			}),
+			providerOptions: {
+				sarvam: {
+					...providerMetadata?.sarvam,
+					...this.settings,
+				},
+			},
+			schema: chatSettingsSchema,
 		});
 
-		const baseArgs = (prompt: LanguageModelV1Prompt) => ({
-			// model id:
+		const baseArgs = {
 			model: this.modelId,
-
-			// model specific settings:
-			user: this.settings.user,
-			parallel_tool_calls: this.settings.parallelToolCalls,
+			messages: convertToChatMessages(prompt),
 
 			// standardized settings:
 			max_tokens: maxTokens,
-			temperature,
+			temperature: temperature === 0 ? undefined : temperature,
 			top_p: topP,
 			frequency_penalty: frequencyPenalty,
 			presence_penalty: presencePenalty,
 			stop: stopSequences,
 			seed,
 
-			// response format:
+			...sarvamOptions,
+
 			response_format:
 				// json object response format is not supported for streaming:
 				stream === false && responseFormat?.type === "json"
 					? { type: "json_object" }
 					: undefined,
-
-			// provider options:
-			reasoning_format: sarvamOptions?.reasoningFormat,
-
-			// messages:
-			messages: convertToChatMessages(prompt),
-		});
+		};
 
 		switch (type) {
 			case "regular": {
@@ -150,7 +130,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 
 				return {
 					args: {
-						...baseArgs(prompt),
+						...baseArgs,
 						tools,
 						tool_choice,
 					},
@@ -161,7 +141,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 			case "object-json": {
 				return {
 					args: {
-						...baseArgs(prompt),
+						...baseArgs,
 						response_format:
 							// json object response format is not supported for streaming:
 							stream === false ? { type: "json_object" } : undefined,
@@ -173,7 +153,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 			case "object-tool": {
 				return {
 					args: {
-						...baseArgs(prompt),
+						...baseArgs,
 						tool_choice: {
 							type: "function",
 							function: { name: mode.tool.name },
@@ -222,9 +202,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 			headers: combineHeaders(this.config.headers(), options.headers),
 			body: args,
 			failedResponseHandler: sarvamFailedResponseHandler,
-			successfulResponseHandler: createJsonResponseHandler(
-				sarvamChatResponseSchema,
-			),
+			successfulResponseHandler: createJsonResponseHandler(chatResponseSchema),
 			abortSignal: options.abortSignal,
 			fetch: this.config.fetch,
 		});
@@ -240,10 +218,10 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 
 		const toolCalls = choice.message.tool_calls?.map((toolCall) => ({
 			toolCallType: "function",
-			toolCallId: toolCall.id ?? generateId(),
+			toolCallId: toolCall.id ?? (this.config.generateId ?? generateId)(),
 			toolName: toolCall.function.name,
-			args: toolCall.function.arguments!,
-		})) as LanguageModelV1FunctionToolCall[] | undefined;
+			args: toolCall.function.arguments,
+		})) satisfies LanguageModelV1FunctionToolCall[] | undefined;
 
 		return {
 			text,
@@ -280,9 +258,8 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 				stream: true,
 			},
 			failedResponseHandler: sarvamFailedResponseHandler,
-			successfulResponseHandler: createEventSourceResponseHandler(
-				sarvamChatChunkSchema,
-			),
+			successfulResponseHandler:
+				createEventSourceResponseHandler(chatChunkSchema),
 			abortSignal: options.abortSignal,
 			fetch: this.config.fetch,
 		});
@@ -313,7 +290,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 		return {
 			stream: response.pipeThrough(
 				new TransformStream<
-					ParseResult<z.infer<typeof sarvamChatChunkSchema>>,
+					ParseResult<z.infer<typeof chatChunkSchema>>,
 					LanguageModelV1StreamPart
 				>({
 					transform(chunk, controller) {
@@ -512,85 +489,3 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 		};
 	}
 }
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const sarvamChatResponseSchema = z.object({
-	id: z.string().nullish(),
-	created: z.number().nullish(),
-	model: z.string().nullish(),
-	choices: z.array(
-		z.object({
-			message: z.object({
-				content: z.string().nullish(),
-				reasoning: z.string().nullish(),
-				tool_calls: z
-					.array(
-						z.object({
-							id: z.string().nullish(),
-							type: z.literal("function"),
-							function: z.object({
-								name: z.string(),
-								arguments: z.string(),
-							}),
-						}),
-					)
-					.nullish(),
-			}),
-			index: z.number(),
-			finish_reason: z.string().nullish(),
-		}),
-	),
-	usage: z
-		.object({
-			prompt_tokens: z.number().nullish(),
-			completion_tokens: z.number().nullish(),
-		})
-		.nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const sarvamChatChunkSchema = z.union([
-	z.object({
-		id: z.string().nullish(),
-		created: z.number().nullish(),
-		model: z.string().nullish(),
-		choices: z.array(
-			z.object({
-				delta: z
-					.object({
-						content: z.string().nullish(),
-						reasoning: z.string().nullish(),
-						tool_calls: z
-							.array(
-								z.object({
-									index: z.number(),
-									id: z.string().nullish(),
-									type: z.literal("function").optional(),
-									function: z.object({
-										name: z.string().nullish(),
-										arguments: z.string().nullish(),
-									}),
-								}),
-							)
-							.nullish(),
-					})
-					.nullish(),
-				finish_reason: z.string().nullable().optional(),
-				index: z.number(),
-			}),
-		),
-		x_sarvam: z
-			.object({
-				usage: z
-					.object({
-						prompt_tokens: z.number().nullish(),
-						completion_tokens: z.number().nullish(),
-					})
-					.nullish(),
-			})
-			.nullish(),
-	}),
-	sarvamErrorDataSchema,
-]);

@@ -78,12 +78,13 @@ export function createSarvam(options: SarvamProviderSettings = {}) {
 			transcription: settings,
 		});
 
-	provider.speechTranslation = (modelId) =>
+	provider.speechTranslation = (modelId, settings) =>
 		new SarvamSpeechTranslationModel(modelId, {
 			provider: "sarvam.speech-translation",
 			url: ({ path }) => `${baseURL}${path}`,
 			headers: getHeaders,
 			fetch: options.fetch,
+			speechTranslation: settings,
 		});
 
 	provider.transliterate = (settings) =>

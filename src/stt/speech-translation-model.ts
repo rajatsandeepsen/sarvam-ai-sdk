@@ -5,13 +5,16 @@ import type {
 import {
 	combineHeaders,
 	createJsonResponseHandler,
+	parseProviderOptions,
 	postFormDataToApi,
 } from "@ai-sdk/provider-utils";
 import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
 	type SpeechTranslationModelId,
+	type SpeechTranslationSettings,
 	speechTranslationResponseSchema,
+	speechTranslationSettingsSchema,
 } from "./speech-translation-settings";
 
 // https://docs.sarvam.ai/api-reference-docs/speech-to-text/transcribe
@@ -19,6 +22,7 @@ interface SpeechTranslationModelConfig extends SarvamConfig {
 	_internal?: {
 		currentDate?: () => Date;
 	};
+	speechTranslation?: SpeechTranslationSettings;
 }
 
 export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
@@ -40,12 +44,31 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
 	}: Parameters<TranscriptionModelV1["doGenerate"]>[0]) {
 		const warnings: TranscriptionModelV1CallWarning[] = [];
 
+		const sarvamOptions = parseProviderOptions({
+			provider: "sarvam",
+			providerOptions: {
+				sarvam: {
+					...providerOptions?.sarvam,
+					...this.config.speechTranslation,
+				},
+			},
+			schema: speechTranslationSettingsSchema,
+		});
+
 		const formData = new FormData();
 		const blob =
 			audio instanceof Blob ? audio : new Blob([audio], { type: mediaType });
 
 		formData.append("file", blob);
 		formData.append("model", this.modelId);
+
+		if (sarvamOptions) {
+			Object.entries(sarvamOptions).forEach(([key, value]) => {
+				if (value) {
+					formData.append(key, String(value));
+				}
+			});
+		}
 
 		return {
 			formData,
@@ -80,8 +103,14 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
 
 		return {
 			text: response.transcript,
-			segments: [],
-			language: response.language_code ? response.language_code : undefined,
+			segments:
+				response.diarized_transcript?.entries.map((e) => ({
+					text: e.transcript,
+					endSecond: e.end_time_seconds,
+					startSecond: e.start_time_seconds,
+					speakerId: e.speaker_id,
+				})) ?? [],
+			language: response.language_code ?? undefined,
 			durationInSeconds: undefined,
 			warnings,
 			response: {

@@ -1,6 +1,7 @@
 import z from "zod";
 import {
 	type MoreSarvamLanguageCode,
+	MoreSarvamLanguageCodeSchema,
 	type SarvamLanguageCode,
 	SarvamLanguageCodeSchema,
 } from "../config";
@@ -92,6 +93,26 @@ export type TranslationSettings<
     */
 	output_script?: "roman" | "fully-native" | "spoken-form-in-native";
 };
+
+export const translationSettingsSchema = z.object({
+	from: z
+		.union([
+			SarvamLanguageCodeSchema,
+			MoreSarvamLanguageCodeSchema,
+			z.enum(["auto"]),
+		])
+		.nullish(),
+	to: z.union([SarvamLanguageCodeSchema, MoreSarvamLanguageCodeSchema]),
+	numerals_format: z.enum(["native", "international"]).nullish(),
+	speaker_gender: z.enum(["Male", "Female"]).nullish(),
+	mode: z
+		.enum(["formal", "modern-colloquial", "classic-colloquial", "code-mixed"])
+		.nullish(),
+	enable_preprocessing: z.boolean().nullish(),
+	output_script: z
+		.enum(["roman", "fully-native", "spoken-form-in-native"])
+		.nullish(),
+});
 
 export const translationResponseSchema = z.object({
 	translated_text: z.string().nullish(),

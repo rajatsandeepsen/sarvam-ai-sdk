@@ -113,14 +113,14 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
 
 		return {
 			text: response.transcript,
-			segments: response.timestamps
-				? response.timestamps.words.map((word, index) => ({
-						text: word,
-						startSecond: response.timestamps?.start_time_seconds[index] ?? NaN,
-						endSecond: response.timestamps?.end_time_seconds[index] ?? NaN,
-					}))
-				: [],
-			language: response.language_code ? response.language_code : undefined,
+			segments:
+				response.diarized_transcript?.entries.map((e) => ({
+					text: e.transcript,
+					speakerId: e.speaker_id,
+					startSecond: e.start_time_seconds,
+					endSecond: e.end_time_seconds,
+				})) ?? [],
+			language: response.language_code ?? undefined,
 			durationInSeconds:
 				response.timestamps?.end_time_seconds[
 					response.timestamps.end_time_seconds.length - 1

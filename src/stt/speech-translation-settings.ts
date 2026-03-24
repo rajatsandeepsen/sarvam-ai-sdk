@@ -11,6 +11,35 @@ export type SpeechTranslationModelId =
 	| "saaras:v2.5"
 	| (string & {});
 
+export const speechTranslationSettingsSchema = z.object({
+	input_audio_codec: z.enum([
+		"wav",
+		"x-wav",
+		"wave",
+		"mp3",
+		"mpeg",
+		"mpeg3",
+		"x-mp3",
+		"x-mpeg-3",
+		"aac",
+		"x-aac",
+		"aiff",
+		"x-aiff",
+		"ogg",
+		"opus",
+		"flac",
+		"x-flac",
+		"mp4",
+		"x-m4a",
+		"amr",
+		"x-ms-wma",
+		"webm",
+		"pcm_s16le",
+		"pcm_l16",
+		"pcm_raw",
+	]),
+});
+
 export type SpeechTranslationSettings = {
 	/**
 	 * Audio codec/format of the input file.
@@ -18,31 +47,9 @@ export type SpeechTranslationSettings = {
 	 * Our API automatically detects all codec formats, but for PCM files specifically (pcm_s16le, pcm_l16, pcm_raw), you must pass this parameter.
 	 * PCM files are supported only at 16kHz sample rate.
 	 */
-	input_audio_codec?:
-		| "wav"
-		| "x-wav"
-		| "wave"
-		| "mp3"
-		| "mpeg"
-		| "mpeg3"
-		| "x-mp3"
-		| "x-mpeg-3"
-		| "aac"
-		| "x-aac"
-		| "aiff"
-		| "x-aiff"
-		| "ogg"
-		| "opus"
-		| "flac"
-		| "x-flac"
-		| "mp4"
-		| "x-m4a"
-		| "amr"
-		| "x-ms-wma"
-		| "webm"
-		| "pcm_s16le"
-		| "pcm_l16"
-		| "pcm_raw";
+	input_audio_codec?: z.infer<
+		typeof speechTranslationSettingsSchema.shape.input_audio_codec
+	>;
 };
 
 export const speechTranslationResponseSchema = z.object({

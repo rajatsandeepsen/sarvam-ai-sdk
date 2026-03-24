@@ -7,13 +7,13 @@ import {
 	createJsonResponseHandler,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import { convertToChatMessages } from "../chat/convert-to-chat-messages";
 import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
 	sarvamTransliterateResponseSchema,
 	type TransliterateSettings,
 } from "./transliterate-settings";
+import { convertPromptToInput } from "./utils";
 
 export class SarvamTransliterateModel implements LanguageModelV1 {
 	readonly specificationVersion = "v1";
@@ -37,7 +37,6 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 	}
 
 	get supportsImageUrls(): boolean {
-		// image urls can be sent if downloadImages is disabled (default):
 		return false;
 	}
 
@@ -63,18 +62,12 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 			throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
 		}
 
-		const messages = convertToChatMessages(prompt);
-
 		return {
-			messages,
 			args: {
-				input: messages
-					.filter((m) => m.role === "user")
-					.map((m) => m.content)
-					.join("\n"),
+				input: convertPromptToInput(prompt),
 				source_language_code: this.settings.from ?? "auto",
 				target_language_code: this.settings.to,
-				numerals_format: this.settings.numerals_format ?? "international",
+				numerals_format: this.settings.numerals_format,
 				...(this.settings.spoken_form
 					? {
 							spoken_form: this.settings.spoken_form,
@@ -90,7 +83,7 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 	async doGenerate(
 		options: Parameters<LanguageModelV1["doGenerate"]>[0],
 	): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
-		const { args, warnings, messages } = this.getArgs({
+		const { args, warnings } = this.getArgs({
 			...options,
 			stream: false,
 		});

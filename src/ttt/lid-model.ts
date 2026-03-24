@@ -7,10 +7,10 @@ import {
 	createJsonResponseHandler,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import { convertToChatMessages } from "../chat/convert-to-chat-messages";
 import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import { sarvamLidResponseSchema } from "./lid-settings";
+import { convertPromptToInput } from "./utils";
 
 export class SarvamLidModel implements LanguageModelV1 {
 	readonly specificationVersion = "v1";
@@ -51,15 +51,9 @@ export class SarvamLidModel implements LanguageModelV1 {
 			throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
 		}
 
-		const messages = convertToChatMessages(prompt);
-
 		return {
-			messages,
 			args: {
-				input: messages
-					.filter((m) => m.role === "user")
-					.map((m) => m.content)
-					.join("\n"),
+				input: convertPromptToInput(prompt),
 			},
 			warnings,
 		};
@@ -68,7 +62,7 @@ export class SarvamLidModel implements LanguageModelV1 {
 	async doGenerate(
 		options: Parameters<LanguageModelV1["doGenerate"]>[0],
 	): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
-		const { args, warnings, messages } = this.getArgs({
+		const { args, warnings } = this.getArgs({
 			...options,
 			stream: false,
 		});
