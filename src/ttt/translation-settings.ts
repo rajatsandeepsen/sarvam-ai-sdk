@@ -99,9 +99,9 @@ export const translationSettingsSchema = z.object({
 		.union([
 			SarvamLanguageCodeSchema,
 			MoreSarvamLanguageCodeSchema,
-			z.enum(["auto"]),
+			z.literal("auto"),
 		])
-		.nullish(),
+		.default("auto"),
 	to: z.union([SarvamLanguageCodeSchema, MoreSarvamLanguageCodeSchema]),
 	numerals_format: z.enum(["native", "international"]).nullish(),
 	speaker_gender: z.enum(["Male", "Female"]).nullish(),

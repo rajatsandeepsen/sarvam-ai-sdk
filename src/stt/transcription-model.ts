@@ -8,10 +8,13 @@ import {
 	parseProviderOptions,
 	postFormDataToApi,
 } from "@ai-sdk/provider-utils";
-import type {
-	MoreSarvamLanguageCode,
-	SarvamConfig,
-	SarvamLanguageCode,
+import z from "zod";
+import {
+	type MoreSarvamLanguageCode,
+	MoreSarvamLanguageCodeSchema,
+	type SarvamConfig,
+	type SarvamLanguageCode,
+	SarvamLanguageCodeSchema,
 } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
@@ -64,14 +67,25 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
 		});
 
 		const formData = new FormData();
+
+		// Required parameters
+		formData.append("model", this.modelId);
+		formData.append(
+			"language_code",
+			z
+				.union([
+					SarvamLanguageCodeSchema,
+					MoreSarvamLanguageCodeSchema,
+					z.literal("unknown"),
+				])
+				.parse(this.languageCode),
+		);
+
 		const blob =
 			audio instanceof Blob ? audio : new Blob([audio], { type: mediaType });
-
 		formData.append("file", blob);
-		formData.append("model", this.modelId);
-		formData.append("language_code", this.languageCode);
 
-		// Add provider-specific options
+		// Optional provider-specific options
 		if (sarvamOptions) {
 			Object.entries(sarvamOptions).forEach(([key, value]) => {
 				if (value) {

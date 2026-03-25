@@ -5,13 +5,15 @@ import type {
 import {
 	combineHeaders,
 	createJsonResponseHandler,
+	parseProviderOptions,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
 import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
-	sarvamTransliterateResponseSchema,
 	type TransliterateSettings,
+	transliterateResponseSchema,
+	transliterateSettingsSchema,
 } from "./transliterate-settings";
 import { convertPromptToInput } from "./utils";
 
@@ -43,38 +45,49 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 	private getArgs({
 		mode,
 		prompt,
+		providerMetadata,
 	}: Parameters<LanguageModelV1["doGenerate"]>[0] & {
 		stream: boolean;
 	}) {
 		const type = mode.type;
-
 		const warnings: LanguageModelV1CallWarning[] = [];
-
-		if (this.settings.from !== "auto") {
-			if (this.settings.to !== "en-IN" && this.settings.from !== "en-IN")
-				throw new Error(
-					"Sarvam doesn't support Indic-Indic Transliteration yet",
-				);
-		}
 
 		if (type !== "regular") {
 			const _exhaustiveCheck = type;
 			throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
 		}
 
+		const sarvamOptions = parseProviderOptions({
+			provider: "sarvam",
+			providerOptions: {
+				sarvam: {
+					...providerMetadata?.sarvam,
+					...this.settings,
+				},
+			},
+			schema: transliterateSettingsSchema,
+		});
+
+		if (!sarvamOptions)
+			throw new Error("Transliterate Settings is not provided");
+
+		if (sarvamOptions.from !== "auto") {
+			if (sarvamOptions.to !== "en-IN" && sarvamOptions.from !== "en-IN")
+				if (sarvamOptions.to !== sarvamOptions.from)
+					throw new Error(
+						"Sarvam doesn't support Indic-Indic Transliteration yet",
+					);
+		}
+
 		return {
 			args: {
 				input: convertPromptToInput(prompt),
-				source_language_code: this.settings.from ?? "auto",
-				target_language_code: this.settings.to,
-				numerals_format: this.settings.numerals_format,
-				...(this.settings.spoken_form
-					? {
-							spoken_form: this.settings.spoken_form,
-							spoken_form_numerals_language:
-								this.settings.spoken_form_numerals_language ?? "english",
-						}
-					: {}),
+				...sarvamOptions,
+				source_language_code: sarvamOptions.from ?? "auto",
+				target_language_code: sarvamOptions.to,
+				spoken_form_numerals_language: sarvamOptions.spoken_form
+					? (sarvamOptions.spoken_form_numerals_language ?? "english")
+					: undefined,
 			},
 			warnings,
 		};
@@ -103,7 +116,7 @@ export class SarvamTransliterateModel implements LanguageModelV1 {
 			body: args,
 			failedResponseHandler: sarvamFailedResponseHandler,
 			successfulResponseHandler: createJsonResponseHandler(
-				sarvamTransliterateResponseSchema,
+				transliterateResponseSchema,
 			),
 			abortSignal: options.abortSignal,
 			fetch: this.config.fetch,

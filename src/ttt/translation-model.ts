@@ -44,7 +44,6 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 	}
 
 	get supportsImageUrls(): boolean {
-		// image urls can be sent if downloadImages is disabled (default):
 		return false;
 	}
 
@@ -75,16 +74,18 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 			schema: translationSettingsSchema,
 		});
 
-		if (this.settings.from === this.settings.to) {
+		if (!sarvamOptions) throw new Error("Translation Settings is not provided");
+
+		if (sarvamOptions.from === sarvamOptions.to) {
 			throw new Error("Source and target languages code must be different.");
 		}
 
 		if (this.modelId === "sarvam-translate:v1") {
-			if ((this.settings.mode ?? "formal") !== "formal")
+			if ((sarvamOptions.mode ?? "formal") !== "formal")
 				throw new Error(
 					"Sarvam 'sarvam-translate:v1' only support mode formal.",
 				);
-			if ((this.settings.from ?? "auto") === "auto")
+			if (sarvamOptions.from === "auto")
 				throw new Error(
 					"Sarvam 'sarvam-translate:v1' requires source language code.",
 				);
@@ -94,8 +95,9 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 			args: {
 				input: convertPromptToInput(prompt),
 				model: this.modelId,
-				source_language_code: "auto",
 				...sarvamOptions,
+				source_language_code: sarvamOptions.from ?? "auto",
+				target_language_code: sarvamOptions.to,
 			},
 			warnings,
 		};

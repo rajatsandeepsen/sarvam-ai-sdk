@@ -5,12 +5,14 @@ import {
 	parseProviderOptions,
 	postJsonToApi,
 } from "@ai-sdk/provider-utils";
-import type { SarvamConfig, SarvamLanguageCode } from "../config";
+import {
+	type SarvamConfig,
+	type SarvamLanguageCode,
+	SarvamLanguageCodeSchema,
+} from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
-	outputAudioCodecSchema,
 	SarvamProviderOptionsSchema,
-	SpeakerSchema,
 	type SpeechModelId,
 	type SpeechSettings,
 	sarvamSpeechResponseSchema,
@@ -41,7 +43,6 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 		voice,
 		outputFormat = "wav",
 		speed,
-		// instructions,
 		providerOptions,
 	}: Parameters<SpeechModelV1["doGenerate"]>[0]) {
 		const warnings: SpeechModelV1CallWarning[] = [];
@@ -51,6 +52,9 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
+					speaker: voice,
+					pace: speed,
+					output_audio_codec: outputFormat,
 					...providerOptions?.sarvam,
 					...this.config.speech,
 				},
@@ -58,44 +62,14 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 			schema: SarvamProviderOptionsSchema,
 		});
 
-		const getSpeaker = (): SpeechSettings["speaker"] => {
-			if (voice) {
-				return SpeakerSchema.parse(voice);
-			}
-
-			switch (this.modelId) {
-				case "bulbul:v2":
-					return "manisha";
-				case "bulbul:v3":
-					return "shubh";
-			}
-
-			return "shubh";
-		};
-
-		// Create request body
+		// Required request body
 		const requestBody: Record<string, unknown> = {
 			model: this.modelId,
-			text: text,
-			target_language_code: this.languageCode,
-			speaker: getSpeaker(),
-			pace: speed,
+			text,
+			target_language_code: SarvamLanguageCodeSchema.parse(this.languageCode),
 		};
 
-		if (outputFormat) {
-			const of = outputAudioCodecSchema.safeParse(outputFormat);
-			if (of.success) {
-				requestBody.output_audio_codec = of.data;
-			} else {
-				warnings.push({
-					type: "unsupported-setting",
-					setting: "outputFormat",
-					details: `Unsupported output format: ${outputFormat}. Using wav instead.`,
-				});
-			}
-		}
-
-		// Add provider-specific options
+		// Optional provider-specific options
 		if (sarvamOptions) {
 			Object.entries(sarvamOptions).forEach(([key, value]) => {
 				if (value !== undefined) {

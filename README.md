@@ -130,8 +130,8 @@ import { generateText } from "ai";
 
 const result = await generateText({
   model: sarvam.transliterate({
-      from: "en-IN",
       to: "ml-IN",
+      from: "en-IN", // optional
   }),
   prompt: "eda mone, happy alle?",
 });
@@ -222,7 +222,7 @@ sarvam("sarvam-105b");
 sarvam.languageModel("sarvam-30b");
 
 // Text-to-Text + Transliteration
-sarvam.transliterate({ from: "en-IN", to: "ml-IN" });
+sarvam.transliterate({ to: "ml-IN", from: "en-IN" });
 
 // Text-to-Text + Translation
 sarvam.translation("mayura:v1", { from: "en-IN", to: "ml-IN" });
