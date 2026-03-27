@@ -4,7 +4,6 @@ import {
 	type LanguageModelV1CallWarning,
 	type LanguageModelV1FinishReason,
 	type LanguageModelV1FunctionToolCall,
-	type LanguageModelV1Prompt,
 	type LanguageModelV1ProviderMetadata,
 	type LanguageModelV1StreamPart,
 } from "@ai-sdk/provider";
@@ -285,6 +284,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 			completionTokens: undefined,
 		};
 		let isFirstChunk = true;
+		const getThisConfig = this.config;
 
 		let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
 		return {
@@ -437,7 +437,7 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 								}
 
 								if (toolCallDelta.function?.arguments != null) {
-									toolCall.function!.arguments +=
+									toolCall.function.arguments +=
 										toolCallDelta.function?.arguments ?? "";
 								}
 
@@ -459,7 +459,11 @@ export class SarvamChatLanguageModel implements LanguageModelV1 {
 									controller.enqueue({
 										type: "tool-call",
 										toolCallType: "function",
-										toolCallId: toolCall.id ?? generateId(),
+										toolCallId:
+											toolCall.id ??
+											(getThisConfig.generateId
+												? getThisConfig.generateId()
+												: generateId()),
 										toolName: toolCall.function.name,
 										args: toolCall.function.arguments,
 									});

@@ -84,7 +84,7 @@ export const SarvamProviderOptionsSchema = z
 	.object({
 		speaker: SpeakerSchema,
 		pitch: z.number().min(-0.75).max(0.75),
-		pace: z.number().min(0.5).max(3.0),
+		pace: z.number().min(0.3).max(3.0),
 		loudness: z.number().min(0.3).max(3.0),
 		speech_sample_rate: z.union([
 			z.literal(8000),

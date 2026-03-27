@@ -72,7 +72,7 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 		// Optional provider-specific options
 		if (sarvamOptions) {
 			Object.entries(sarvamOptions).forEach(([key, value]) => {
-				if (value !== undefined) {
+				if (value !== undefined && value !== null) {
 					requestBody[key] = value;
 				}
 			});

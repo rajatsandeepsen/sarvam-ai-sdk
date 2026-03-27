@@ -88,7 +88,7 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
 		// Optional provider-specific options
 		if (sarvamOptions) {
 			Object.entries(sarvamOptions).forEach(([key, value]) => {
-				if (value) {
+				if (value !== undefined && value !== null) {
 					formData.append(key, String(value));
 				}
 			});

@@ -64,7 +64,7 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV1 {
 
 		if (sarvamOptions) {
 			Object.entries(sarvamOptions).forEach(([key, value]) => {
-				if (value) {
+				if (value !== undefined && value !== null) {
 					formData.append(key, String(value));
 				}
 			});
