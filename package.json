@@ -1,7 +1,7 @@
 {
 	"name": "sarvam-ai-sdk",
 	"description": "Sarvam provider support for Vercel's AI-SDK",
-	"version": "0.1.5",
+	"version": "0.1.5-beta",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
