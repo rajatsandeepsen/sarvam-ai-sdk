@@ -1,4 +1,8 @@
-import type { SpeechModelV1, SpeechModelV1CallWarning } from "@ai-sdk/provider";
+import type {
+	SpeechModelV2,
+	SpeechModelV2CallOptions,
+	SpeechModelV2CallWarning,
+} from "@ai-sdk/provider";
 import {
 	combineHeaders,
 	createJsonResponseHandler,
@@ -12,10 +16,10 @@ import {
 } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import {
-	SarvamProviderOptionsSchema,
 	type SpeechModelId,
 	type SpeechSettings,
-	sarvamSpeechResponseSchema,
+	speechOptionsSchema,
+	speechResponseSchema,
 } from "./speech-settings";
 
 interface SpeechModelConfig extends SarvamConfig {
@@ -25,11 +29,15 @@ interface SpeechModelConfig extends SarvamConfig {
 	speech?: SpeechSettings;
 }
 
-export class SarvamSpeechModel implements SpeechModelV1 {
-	readonly specificationVersion = "v1";
+export class SarvamSpeechModel implements SpeechModelV2 {
+	readonly specificationVersion = "v2";
 
 	get provider(): string {
 		return this.config.provider;
+	}
+
+	get supportedUrls(): Record<string, RegExp[]> {
+		return {};
 	}
 
 	constructor(
@@ -38,14 +46,15 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 		private readonly config: SpeechModelConfig,
 	) {}
 
-	private getArgs({
-		text,
-		voice,
-		outputFormat = "wav",
-		speed,
-		providerOptions,
-	}: Parameters<SpeechModelV1["doGenerate"]>[0]) {
-		const warnings: SpeechModelV1CallWarning[] = [];
+	private getArgs(options: SpeechModelV2CallOptions & { stream: boolean }) {
+		const {
+			text,
+			voice,
+			outputFormat = "wav",
+			speed,
+			providerOptions,
+		} = options;
+		const warnings: SpeechModelV2CallWarning[] = [];
 
 		// Parse provider options
 		const sarvamOptions = parseProviderOptions({
@@ -59,7 +68,7 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 					...this.config.speech,
 				},
 			},
-			schema: SarvamProviderOptionsSchema,
+			schema: speechOptionsSchema,
 		});
 
 		// Required request body
@@ -85,10 +94,13 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 	}
 
 	async doGenerate(
-		options: Parameters<SpeechModelV1["doGenerate"]>[0],
-	): Promise<Awaited<ReturnType<SpeechModelV1["doGenerate"]>>> {
+		options: SpeechModelV2CallOptions,
+	): Promise<Awaited<ReturnType<SpeechModelV2["doGenerate"]>>> {
 		const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-		const { requestBody, warnings } = this.getArgs(options);
+		const { requestBody, warnings } = this.getArgs({
+			...options,
+			stream: false,
+		});
 
 		const {
 			value,
@@ -102,9 +114,8 @@ export class SarvamSpeechModel implements SpeechModelV1 {
 			headers: combineHeaders(this.config.headers(), options.headers),
 			body: requestBody,
 			failedResponseHandler: sarvamFailedResponseHandler,
-			successfulResponseHandler: createJsonResponseHandler(
-				sarvamSpeechResponseSchema,
-			),
+			successfulResponseHandler:
+				createJsonResponseHandler(speechResponseSchema),
 			abortSignal: options.abortSignal,
 			fetch: this.config.fetch,
 		});

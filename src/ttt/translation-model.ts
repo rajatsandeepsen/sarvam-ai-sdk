@@ -1,6 +1,9 @@
 import type {
-	LanguageModelV1,
-	LanguageModelV1CallWarning,
+	LanguageModelV2,
+	LanguageModelV2CallOptions,
+	LanguageModelV2CallWarning,
+	LanguageModelV2Content,
+	LanguageModelV2FinishReason,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -18,11 +21,8 @@ import {
 } from "./translation-settings";
 import { convertPromptToInput } from "./utils";
 
-export class SarvamTranslationModel implements LanguageModelV1 {
-	readonly specificationVersion = "v1";
-
-	readonly supportsStructuredOutputs = false;
-	readonly defaultObjectGenerationMode = "json";
+export class SarvamTranslationModel implements LanguageModelV2 {
+	readonly specificationVersion = "v2";
 
 	readonly modelId: TranslationModelId;
 	readonly settings: TranslationSettings;
@@ -43,40 +43,36 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 		return this.config.provider;
 	}
 
-	get supportsImageUrls(): boolean {
-		return false;
+	get supportedUrls(): Record<string, RegExp[]> {
+		return {};
 	}
 
-	private getArgs({
-		mode,
-		prompt,
-		providerMetadata,
-	}: Parameters<LanguageModelV1["doGenerate"]>[0] & {
-		stream: boolean;
-	}) {
-		const type = mode.type;
+	private getArgs(
+		options: LanguageModelV2CallOptions & {
+			stream: boolean;
+		},
+	) {
+		const { prompt, providerOptions } = options;
 
-		const warnings: LanguageModelV1CallWarning[] = [];
-
-		if (type !== "regular") {
-			const _exhaustiveCheck = type;
-			throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-		}
+		const warnings: LanguageModelV2CallWarning[] = [];
 
 		const sarvamOptions = parseProviderOptions({
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
-					...providerMetadata?.sarvam,
+					...providerOptions?.sarvam,
 					...this.settings,
 				},
 			},
 			schema: translationSettingsSchema,
-		});
+		}) as unknown as ReturnType<typeof translationSettingsSchema.parse>;
 
 		if (!sarvamOptions) throw new Error("Translation Settings is not provided");
 
-		if (sarvamOptions.from === sarvamOptions.to) {
+		const from = sarvamOptions.from ?? "auto";
+		const to = sarvamOptions.to;
+
+		if (from === to) {
 			throw new Error("Source and target languages code must be different.");
 		}
 
@@ -85,7 +81,7 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 				throw new Error(
 					"Sarvam 'sarvam-translate:v1' only support mode formal.",
 				);
-			if (sarvamOptions.from === "auto")
+			if (from === "auto")
 				throw new Error(
 					"Sarvam 'sarvam-translate:v1' requires source language code.",
 				);
@@ -96,28 +92,22 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 				input: convertPromptToInput(prompt),
 				model: this.modelId,
 				...sarvamOptions,
-				source_language_code: sarvamOptions.from ?? "auto",
-				target_language_code: sarvamOptions.to,
+				source_language_code: from,
+				target_language_code: to,
 			},
 			warnings,
 		};
 	}
 
 	async doGenerate(
-		options: Parameters<LanguageModelV1["doGenerate"]>[0],
-	): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
+		options: LanguageModelV2CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
 		const { args, warnings } = this.getArgs({
 			...options,
 			stream: false,
 		});
 
-		const body = JSON.stringify(args);
-
-		const {
-			responseHeaders,
-			value: response,
-			rawValue: rawResponse,
-		} = await postJsonToApi({
+		const { value: response } = await postJsonToApi({
 			url: this.config.url({
 				path: "/translate",
 				modelId: this.modelId,
@@ -132,30 +122,27 @@ export class SarvamTranslationModel implements LanguageModelV1 {
 			fetch: this.config.fetch,
 		});
 
-		const { input: rawPrompt, ...rawSettings } = args;
+		const translatedText = response.translated_text ?? "unknown";
 
-		const text = response.translated_text ?? undefined;
+		const content: LanguageModelV2Content[] = [
+			{ type: "text", text: translatedText },
+		];
 
 		return {
-			text,
-			toolCalls: undefined,
-			reasoning: undefined,
-			finishReason: "unknown",
+			content,
+			finishReason: "stop" as LanguageModelV2FinishReason,
 			usage: {
-				promptTokens: NaN,
-				completionTokens: NaN,
+				inputTokens: NaN,
+				outputTokens: NaN,
+				totalTokens: NaN,
 			},
-			rawCall: { rawPrompt, rawSettings },
-			rawResponse: { headers: responseHeaders, body: rawResponse },
-			response: undefined,
 			warnings,
-			request: { body },
 		};
 	}
 
 	async doStream(
-		options: Parameters<LanguageModelV1["doStream"]>[0],
-	): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
+		_options: LanguageModelV2CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
 		throw new Error("Translation feature doesn't support streaming yet");
 	}
 }

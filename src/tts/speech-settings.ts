@@ -80,7 +80,7 @@ export const outputAudioCodecSchema = z.enum([
 ]);
 
 // https://docs.sarvam.ai/api-reference-docs/text-to-speech/convert
-export const SarvamProviderOptionsSchema = z
+export const speechOptionsSchema = z
 	.object({
 		speaker: SpeakerSchema,
 		pitch: z.number().min(-0.75).max(0.75),
@@ -215,7 +215,7 @@ export type SpeechSettings<T extends SpeechModelId = SpeechModelId> = {
 	enable_cached_responses?: T extends "bulbul:v3" ? never : boolean;
 };
 
-export const sarvamSpeechResponseSchema = z.object({
+export const speechResponseSchema = z.object({
 	request_id: z.string(),
 	audios: z.array(z.string()),
 });

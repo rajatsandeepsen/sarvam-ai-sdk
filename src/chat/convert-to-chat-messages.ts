@@ -1,52 +1,68 @@
 import {
-	type LanguageModelV1Prompt,
+	type LanguageModelV2Prompt,
 	UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
 import type { SarvamChatPrompt } from "./types";
 
 export function convertToChatMessages(
-	prompt: LanguageModelV1Prompt,
+	prompt: LanguageModelV2Prompt,
 ): SarvamChatPrompt {
 	const messages: SarvamChatPrompt = [];
 
-	for (const { role, content } of prompt) {
-		switch (role) {
+	for (const message of prompt) {
+		switch (message.role) {
 			case "system": {
-				messages.push({ role: "system", content });
+				messages.push({ role: "system", content: message.content });
 				break;
 			}
 
 			case "user": {
-				if (content.length === 1 && content[0].type === "text") {
-					messages.push({ role: "user", content: content[0].text });
+				if (
+					message.content.length === 1 &&
+					message.content[0].type === "text"
+				) {
+					messages.push({
+						role: "user",
+						content: message.content[0].text,
+					});
 					break;
 				}
 
 				messages.push({
 					role: "user",
-					content: content.map((part) => {
+					content: message.content.map((part) => {
 						switch (part.type) {
 							case "text": {
 								return { type: "text", text: part.text };
 							}
-							case "image": {
+							case "file": {
+								// Convert file to image_url format for backward compatibility
+								let imageData: string;
+								if (typeof part.data === "string") {
+									// Data is already base64 or URL
+									if (
+										part.data.startsWith("http://") ||
+										part.data.startsWith("https://")
+									) {
+										imageData = part.data;
+									} else {
+										// Assume it's base64
+										imageData = `data:${part.mediaType};base64,${part.data}`;
+									}
+								} else if (part.data instanceof URL) {
+									imageData = part.data.toString();
+								} else {
+									// Data is Uint8Array
+									imageData = `data:${part.mediaType};base64,${convertUint8ArrayToBase64(part.data)}`;
+								}
+
 								return {
 									type: "image_url",
 									image_url: {
-										url:
-											part.image instanceof URL
-												? part.image.toString()
-												: `data:${
-														part.mimeType ?? "image/jpeg"
-													};base64,${convertUint8ArrayToBase64(part.image)}`,
+										url: imageData,
 									},
 								};
-							}
-							case "file": {
-								throw new UnsupportedFunctionalityError({
-									functionality: "File content parts in user messages",
-								});
 							}
 
 							default: {
@@ -70,7 +86,7 @@ export function convertToChatMessages(
 					function: { name: string; arguments: string };
 				}> = [];
 
-				for (const part of content) {
+				for (const part of message.content) {
 					switch (part.type) {
 						case "text": {
 							text += part.text;
@@ -82,9 +98,16 @@ export function convertToChatMessages(
 								type: "function",
 								function: {
 									name: part.toolName,
-									arguments: JSON.stringify(part.args),
+									arguments:
+										typeof part.input === "string"
+											? part.input
+											: JSON.stringify(part.input),
 								},
 							});
+							break;
+						}
+						case "tool-result": {
+							// Tool results are handled separately in the tool role
 							break;
 						}
 					}
@@ -100,18 +123,20 @@ export function convertToChatMessages(
 			}
 
 			case "tool": {
-				for (const toolResponse of content) {
-					messages.push({
-						role: "tool",
-						tool_call_id: toolResponse.toolCallId,
-						content: JSON.stringify(toolResponse.result),
-					});
+				for (const part of message.content) {
+					if (part.type === "tool-result") {
+						messages.push({
+							role: "tool",
+							tool_call_id: part.toolCallId,
+							content: JSON.stringify(part.output),
+						});
+					}
 				}
 				break;
 			}
 
 			default: {
-				const _exhaustiveCheck: never = role;
+				const _exhaustiveCheck: never = message;
 				throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
 			}
 		}

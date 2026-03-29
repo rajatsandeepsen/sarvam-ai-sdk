@@ -1,7 +1,7 @@
 {
 	"name": "sarvam-ai-sdk",
 	"description": "Sarvam provider support for Vercel's AI-SDK",
-	"version": "0.1.5-beta",
+	"version": "0.2.0-beta",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
@@ -50,7 +50,7 @@
 	"bugs": {
 		"url": "https://github.com/rajatsandeepsen/sarvam-ai-sdk/issues"
 	},
-	"homepage": "https://v4.ai-sdk.dev/docs",
+	"homepage": "https://v5.ai-sdk.dev/docs",
 	"keywords": [
 		"ai",
 		"ai-sdk",

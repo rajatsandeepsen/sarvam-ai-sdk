@@ -1,6 +1,9 @@
 import type {
-	LanguageModelV1,
-	LanguageModelV1CallWarning,
+	LanguageModelV2,
+	LanguageModelV2CallOptions,
+	LanguageModelV2CallWarning,
+	LanguageModelV2Content,
+	LanguageModelV2FinishReason,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -12,11 +15,8 @@ import { sarvamFailedResponseHandler } from "../error";
 import { sarvamLidResponseSchema } from "./lid-settings";
 import { convertPromptToInput } from "./utils";
 
-export class SarvamLidModel implements LanguageModelV1 {
-	readonly specificationVersion = "v1";
-
-	readonly supportsStructuredOutputs = false;
-	readonly defaultObjectGenerationMode = "json";
+export class SarvamLidModel implements LanguageModelV2 {
+	readonly specificationVersion = "v2";
 
 	readonly modelId: "unknown";
 
@@ -31,25 +31,19 @@ export class SarvamLidModel implements LanguageModelV1 {
 		return this.config.provider;
 	}
 
-	get supportsImageUrls(): boolean {
-		// image urls can be sent if downloadImages is disabled (default):
-		return false;
+	get supportedUrls(): Record<string, RegExp[]> {
+		// Sarvam models don't have native URL support for content
+		return {};
 	}
 
-	private getArgs({
-		mode,
-		prompt,
-	}: Parameters<LanguageModelV1["doGenerate"]>[0] & {
-		stream: boolean;
-	}) {
-		const type = mode.type;
+	private getArgs(
+		options: LanguageModelV2CallOptions & {
+			stream: boolean;
+		},
+	) {
+		const { prompt } = options;
 
-		const warnings: LanguageModelV1CallWarning[] = [];
-
-		if (type !== "regular") {
-			const _exhaustiveCheck = type;
-			throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-		}
+		const warnings: LanguageModelV2CallWarning[] = [];
 
 		return {
 			args: {
@@ -60,20 +54,14 @@ export class SarvamLidModel implements LanguageModelV1 {
 	}
 
 	async doGenerate(
-		options: Parameters<LanguageModelV1["doGenerate"]>[0],
-	): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
+		options: LanguageModelV2CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
 		const { args, warnings } = this.getArgs({
 			...options,
 			stream: false,
 		});
 
-		const body = JSON.stringify(args);
-
-		const {
-			responseHeaders,
-			value: response,
-			rawValue: rawResponse,
-		} = await postJsonToApi({
+		const { value: response } = await postJsonToApi({
 			url: this.config.url({
 				path: "/text-lid",
 				modelId: this.modelId,
@@ -88,30 +76,29 @@ export class SarvamLidModel implements LanguageModelV1 {
 			fetch: this.config.fetch,
 		});
 
-		const { input: rawPrompt, ...rawSettings } = args;
+		const languageCode = response.language_code ?? undefined;
 
-		const text = response.language_code ?? undefined;
+		const content: LanguageModelV2Content[] = [
+			{ type: "text", text: languageCode ?? "unknown" },
+		];
 
 		return {
-			text,
-			toolCalls: undefined,
-			reasoning: undefined,
-			finishReason: "unknown",
+			content,
+			finishReason: "stop" as LanguageModelV2FinishReason,
 			usage: {
-				promptTokens: NaN,
-				completionTokens: NaN,
+				inputTokens: NaN,
+				outputTokens: NaN,
+				totalTokens: NaN,
 			},
-			rawCall: { rawPrompt, rawSettings },
-			rawResponse: { headers: responseHeaders, body: rawResponse },
-			response: undefined,
 			warnings,
-			request: { body },
 		};
 	}
 
 	async doStream(
-		options: Parameters<LanguageModelV1["doStream"]>[0],
-	): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
-		throw new Error("Language Identification feature doesn't streaming yet");
+		_options: LanguageModelV2CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
+		throw new Error(
+			"Language Identification feature doesn't support streaming yet",
+		);
 	}
 }

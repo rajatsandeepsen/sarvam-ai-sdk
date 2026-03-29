@@ -1,6 +1,8 @@
 import {
-	type LanguageModelV1,
-	type LanguageModelV1CallWarning,
+	type LanguageModelV2CallWarning,
+	type LanguageModelV2FunctionTool,
+	type LanguageModelV2ProviderDefinedTool,
+	type LanguageModelV2ToolChoice,
 	UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 
@@ -14,44 +16,34 @@ type SarvamTools = Array<{
 }>;
 
 export function prepareTools({
-	mode,
+	tools,
+	toolChoice,
 }: {
-	mode: Parameters<LanguageModelV1["doGenerate"]>[0]["mode"] & {
-		type: "regular";
-	};
+	tools?: Array<
+		LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool
+	>;
+	toolChoice?: LanguageModelV2ToolChoice;
 }): {
-	tools:
-		| undefined
-		| Array<{
-				type: "function";
-				function: {
-					name: string;
-					description: string | undefined;
-					parameters: unknown;
-				};
-		  }>;
+	tools: SarvamTools | undefined;
 	tool_choice:
 		| { type: "function"; function: { name: string } }
 		| "auto"
 		| "none"
 		| "required"
 		| undefined;
-	toolWarnings: LanguageModelV1CallWarning[];
-	fakeTools?: string;
+	toolWarnings: LanguageModelV2CallWarning[];
 } {
 	// when the tools array is empty, change it to undefined to prevent errors:
-	const tools = mode.tools?.length ? mode.tools : undefined;
-	const toolWarnings: LanguageModelV1CallWarning[] = [];
+	const finalTools = tools?.length ? tools : undefined;
+	const toolWarnings: LanguageModelV2CallWarning[] = [];
 
-	if (tools == null) {
+	if (finalTools == null) {
 		return { tools: undefined, tool_choice: undefined, toolWarnings };
 	}
 
-	const toolChoice = mode.toolChoice;
-
 	const sarvamTools: SarvamTools = [];
 
-	for (const tool of tools) {
+	for (const tool of finalTools) {
 		if (tool.type === "provider-defined") {
 			toolWarnings.push({ type: "unsupported-tool", tool });
 		} else {
@@ -60,7 +52,7 @@ export function prepareTools({
 				function: {
 					name: tool.name,
 					description: tool.description,
-					parameters: tool.parameters,
+					parameters: tool.inputSchema,
 				},
 			});
 		}
@@ -101,7 +93,7 @@ export const parseInnerJSON = (text: string) => {
 	const jsonRegex = /```json\s*([\s\S]*?)\s*```/i;
 	const jsonMatches = text.match(jsonRegex);
 
-	if (jsonMatches && jsonMatches[1]) {
+	if (jsonMatches?.[1]) {
 		return jsonMatches[1];
 	}
 	return text;
