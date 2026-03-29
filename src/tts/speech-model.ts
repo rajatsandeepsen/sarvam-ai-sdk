@@ -46,7 +46,9 @@ export class SarvamSpeechModel implements SpeechModelV2 {
 		private readonly config: SpeechModelConfig,
 	) {}
 
-	private getArgs(options: SpeechModelV2CallOptions & { stream: boolean }) {
+	private async getArgs(
+		options: SpeechModelV2CallOptions & { stream: boolean },
+	) {
 		const {
 			text,
 			voice,
@@ -57,7 +59,7 @@ export class SarvamSpeechModel implements SpeechModelV2 {
 		const warnings: SpeechModelV2CallWarning[] = [];
 
 		// Parse provider options
-		const sarvamOptions = parseProviderOptions({
+		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
@@ -97,7 +99,7 @@ export class SarvamSpeechModel implements SpeechModelV2 {
 		options: SpeechModelV2CallOptions,
 	): Promise<Awaited<ReturnType<SpeechModelV2["doGenerate"]>>> {
 		const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-		const { requestBody, warnings } = this.getArgs({
+		const { requestBody, warnings } = await this.getArgs({
 			...options,
 			stream: false,
 		});

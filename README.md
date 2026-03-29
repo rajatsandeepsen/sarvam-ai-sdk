@@ -1,4 +1,3 @@
-# Package
 # AI SDK - Sarvam Provider
 
 The **[Sarvam provider](https://v5.ai-sdk.dev/providers/ai-sdk-providers/sarvam)** for the [AI SDK](https://v5.ai-sdk.dev/docs)
@@ -168,8 +167,8 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: "Get the weather in a location",
-      parameters: z.object({
-        location: z.string().describe("The location to get the weather for"),
+      inputSchema: z.object({
+		location: z.string(),
       }),
       execute: async ({ location }) => ({
         location,
@@ -184,9 +183,6 @@ const result = await generateText({
 console.log(result.toolResults);
 ```
 
-> [!WARNING]
-> Old `sarvam-m` models isn't trained on native tool calling feature (aka JSON mode). So we recommend using latest models.
-
 ## Generate JSON object
 
 ```ts
@@ -196,6 +192,8 @@ import { generateObject } from 'ai';
 
 const { object } = await generateObject({
   model: sarvam("sarvam-30b"),
+  schemaName: "Recipe",
+  schemaDescription: "A recipe with a name, ingredients and steps",
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -208,9 +206,6 @@ const { object } = await generateObject({
 
 console.log(object);
 ```
-
-> [!WARNING]
-> Old `sarvam-m` models isn't trained on native JSON object generation. So we recommend using latest models.
 
 ## All APIs
 

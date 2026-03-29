@@ -1,0 +1,28 @@
+import z from "zod";
+
+export const input_audio_codec = z.enum([
+	"wav",
+	"x-wav",
+	"wave",
+	"mp3",
+	"mpeg",
+	"mpeg3",
+	"x-mp3",
+	"x-mpeg-3",
+	"aac",
+	"x-aac",
+	"aiff",
+	"x-aiff",
+	"ogg",
+	"opus",
+	"flac",
+	"x-flac",
+	"mp4",
+	"x-m4a",
+	"amr",
+	"x-ms-wma",
+	"webm",
+	"pcm_s16le",
+	"pcm_l16",
+	"pcm_raw",
+]);

@@ -47,7 +47,7 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 		return {};
 	}
 
-	private getArgs(
+	private async getArgs(
 		options: LanguageModelV2CallOptions & {
 			stream: boolean;
 		},
@@ -56,7 +56,7 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 
 		const warnings: LanguageModelV2CallWarning[] = [];
 
-		const sarvamOptions = parseProviderOptions({
+		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
@@ -65,7 +65,7 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 				},
 			},
 			schema: translationSettingsSchema,
-		}) as unknown as ReturnType<typeof translationSettingsSchema.parse>;
+		});
 
 		if (!sarvamOptions) throw new Error("Translation Settings is not provided");
 
@@ -102,7 +102,7 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 	async doGenerate(
 		options: LanguageModelV2CallOptions,
 	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
-		const { args, warnings } = this.getArgs({
+		const { args, warnings } = await this.getArgs({
 			...options,
 			stream: false,
 		});

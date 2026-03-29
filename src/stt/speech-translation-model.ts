@@ -42,13 +42,13 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV2 {
 		return {};
 	}
 
-	private getArgs(
+	private async getArgs(
 		options: TranscriptionModelV2CallOptions & { stream: boolean },
 	) {
 		const { audio, mediaType, providerOptions } = options;
 		const warnings: TranscriptionModelV2CallWarning[] = [];
 
-		const sarvamOptions = parseProviderOptions({
+		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
@@ -84,7 +84,7 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV2 {
 		options: TranscriptionModelV2CallOptions,
 	): Promise<Awaited<ReturnType<TranscriptionModelV2["doGenerate"]>>> {
 		const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-		const { formData, warnings } = this.getArgs({
+		const { formData, warnings } = await this.getArgs({
 			...options,
 			stream: false,
 		});

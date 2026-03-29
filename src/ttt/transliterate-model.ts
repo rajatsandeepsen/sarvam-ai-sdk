@@ -42,7 +42,7 @@ export class SarvamTransliterateModel implements LanguageModelV2 {
 		return {};
 	}
 
-	private getArgs(
+	private async getArgs(
 		options: LanguageModelV2CallOptions & {
 			stream: boolean;
 		},
@@ -50,7 +50,7 @@ export class SarvamTransliterateModel implements LanguageModelV2 {
 		const { prompt, providerOptions } = options;
 		const warnings: LanguageModelV2CallWarning[] = [];
 
-		const sarvamOptions = parseProviderOptions({
+		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
@@ -59,7 +59,7 @@ export class SarvamTransliterateModel implements LanguageModelV2 {
 				},
 			},
 			schema: transliterateSettingsSchema,
-		}) as unknown as ReturnType<typeof transliterateSettingsSchema.parse>;
+		});
 
 		if (!sarvamOptions)
 			throw new Error("Transliterate Settings is not provided");
@@ -92,7 +92,7 @@ export class SarvamTransliterateModel implements LanguageModelV2 {
 	async doGenerate(
 		options: LanguageModelV2CallOptions,
 	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
-		const { args, warnings } = this.getArgs({
+		const { args, warnings } = await this.getArgs({
 			...options,
 			stream: false,
 		});

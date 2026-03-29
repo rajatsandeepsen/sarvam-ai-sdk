@@ -23,7 +23,7 @@ import type { z } from "zod";
 import type { SarvamConfig } from "../config";
 import { sarvamFailedResponseHandler } from "../error";
 import { convertToChatMessages } from "./convert-to-chat-messages";
-import { parseInnerJSON, prepareTools } from "./prepare-tools";
+import { prepareTools } from "./prepare-tools";
 import {
 	type ChatModelId,
 	type ChatSettings,
@@ -79,6 +79,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			tools,
 			toolChoice,
 			providerOptions,
+			stream,
 		} = options;
 
 		const warnings: LanguageModelV2CallWarning[] = [];
@@ -90,7 +91,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			});
 		}
 
-		const sarvamOptions = parseProviderOptions({
+		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
 			providerOptions: {
 				sarvam: {
@@ -118,33 +119,47 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 
 			response_format:
 				// json object response format is not supported for streaming:
-				options.stream === false && responseFormat?.type === "json"
+				stream === false && responseFormat?.type === "json"
 					? { type: "json_object" }
 					: undefined,
 		};
 
-		// Handle tools
-		let toolsArg: unknown;
-		let toolChoiceArg: unknown;
-		let toolWarnings: LanguageModelV2CallWarning[] = [];
+		let toolsArg: ReturnType<typeof prepareTools> | null = null;
 
 		if (tools && tools.length > 0) {
-			const result = prepareTools({
+			toolsArg = prepareTools({
 				tools,
 				toolChoice,
 			});
-			toolsArg = result.tools;
-			toolChoiceArg = result.tool_choice;
-			toolWarnings = result.toolWarnings ?? [];
+		}
+
+		if (responseFormat?.type === "json") {
+			const objectMode = responseFormat;
+			toolsArg = {
+				toolWarnings: [],
+				tool_choice: {
+					type: "function",
+					function: { name: objectMode.name ?? "response" },
+				},
+				tools: [
+					{
+						type: "function",
+						function: {
+							name: objectMode.name ?? "response",
+							description: objectMode.description,
+							parameters: objectMode.schema,
+						},
+					},
+				],
+			} satisfies ReturnType<typeof prepareTools>;
 		}
 
 		return {
 			args: {
 				...baseArgs,
-				...(toolsArg ? { tools: toolsArg } : {}),
-				...(toolChoiceArg ? { tool_choice: toolChoiceArg } : {}),
+				...(toolsArg ?? {}),
 			},
-			warnings: [...warnings, ...toolWarnings],
+			warnings: [...warnings, ...(toolsArg?.toolWarnings ?? [])],
 		};
 	}
 
@@ -175,22 +190,14 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			fetch: this.config.fetch,
 		});
 
-		const { messages: rawPrompt, ...rawSettings } = args;
 		const choice = response.choices[0];
 
 		const content: LanguageModelV2Content[] = [];
 
-		// Add text content if present
-		let text = choice.message.content ?? undefined;
-
-		if (options.responseFormat?.type === "json" && text) {
-			text = parseInnerJSON(text);
-		}
-
-		if (text) {
+		if (choice.message.content) {
 			content.push({
 				type: "text",
-				text,
+				text: choice.message.content,
 			} as LanguageModelV2Text);
 		}
 
@@ -204,6 +211,13 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 
 		// Add tool calls if present
 		if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+			if (options.responseFormat?.type === "json") {
+				content.push({
+					type: "text",
+					text: choice.message.tool_calls[0].function.arguments,
+				} as LanguageModelV2Text);
+			}
+
 			for (const toolCall of choice.message.tool_calls) {
 				content.push({
 					type: "tool-call",
@@ -253,8 +267,6 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			abortSignal: options.abortSignal,
 			fetch: this.config.fetch,
 		});
-
-		const { messages: rawPrompt, ...rawSettings } = args;
 
 		const toolCalls: Array<{
 			id: string;

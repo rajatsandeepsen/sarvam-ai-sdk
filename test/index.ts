@@ -1,9 +1,7 @@
 import { generateText } from "ai";
-import { createSarvam, sarvam } from "../src";
-
-// const sarvam = createSarvam({
-// 	apiKey: process.env.SARVAM_API_KEY!,
-// });
+import { sarvam } from "../src";
+import { readFile, writeFile } from "fs/promises";
+import { z } from "zod";
 
 const { text } = await generateText({
 	model: sarvam("sarvam-105b"),
@@ -15,7 +13,6 @@ console.log({ text }); // പാചകം തുടരൂ, സുഹൃത്ത
 // throw new Error("Stop here");
 
 import { experimental_generateSpeech as generateSpeech } from "ai";
-import { writeFile } from "fs/promises";
 
 const { audio } = await generateSpeech({
 	model: sarvam.speech("bulbul:v2", "ml-IN"),
@@ -27,7 +24,6 @@ await writeFile("./test/transcript-test.wav", audioBuffer);
 console.log("Speech generated");
 
 import { experimental_transcribe as transcribe } from "ai";
-import { readFile } from "fs/promises";
 
 const { text: transcription } = await transcribe({
 	model: sarvam.transcription("saaras:v3"),
@@ -71,32 +67,33 @@ const { text: languageIdentification } = await generateText({
 console.log({ languageIdentification }); // ml-IN
 
 import { tool } from "ai";
-import { z } from "zod";
 
 const { toolResults } = await generateText({
 	model: sarvam("sarvam-30b"),
 	tools: {
 		weather: tool({
 			description: "Get the weather in a location",
-			parameters: z.object({
-				location: z.string().describe("The location to get the weather for"),
+			inputSchema: z.object({
+				location: z.string(),
 			}),
 			execute: async ({ location }) => ({
-				location,
-				temperature: 72 + Math.floor(Math.random() * 21) - 10,
-			}),
+		        location,
+		        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+		    }),
 		}),
 	},
 	system: "Your are a helpful AI",
 	prompt: "കൊച്ചിയിലെ കാലാവസ്ഥ എന്താണ്?",
 });
 
-console.log({ toolResults });
+console.log(toolResults);
 
 import { generateObject } from "ai";
 
 const { object } = await generateObject({
 	model: sarvam("sarvam-30b"),
+	schemaName: "Recipe",
+	schemaDescription: "A recipe with a name, ingredients and steps",
 	schema: z.object({
 		recipe: z.object({
 			name: z.string(),

@@ -88,13 +88,3 @@ export function prepareTools({
 		}
 	}
 }
-
-export const parseInnerJSON = (text: string) => {
-	const jsonRegex = /```json\s*([\s\S]*?)\s*```/i;
-	const jsonMatches = text.match(jsonRegex);
-
-	if (jsonMatches?.[1]) {
-		return jsonMatches[1];
-	}
-	return text;
-};
