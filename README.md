@@ -1,3 +1,7 @@
+<a href="https://github.com/rajatsandeepsen/sarvam-ai-sdk">
+    <img alt="cover" src="https://github.com/rajatsandeepsen/sarvam-ai-sdk/blob/master/cover.png?raw=true" />
+</a>
+
 # AI SDK - Sarvam Provider
 
 The **[Sarvam provider](https://v6.ai-sdk.dev/providers/community-providers/sarvam)** for the [AI SDK](https://v6.ai-sdk.dev/docs)
