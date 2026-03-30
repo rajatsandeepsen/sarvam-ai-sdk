@@ -31,7 +31,7 @@ import {
 	chatResponseSchema,
 	chatSettingsSchema,
 } from "./settings";
-import { getResponseMetadata, mapSarvamFinishReason } from "./utils";
+import { getResponseMetadata, mapFinishReason } from "./utils";
 
 export class SarvamChatLanguageModel implements LanguageModelV3 {
 	readonly specificationVersion = "v3";
@@ -232,7 +232,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 
 		return {
 			content,
-			finishReason: mapSarvamFinishReason(choice.finish_reason),
+			finishReason: mapFinishReason(choice.finish_reason),
 			usage: {
 				inputTokens: {
 					total: response.usage?.prompt_tokens ?? undefined,
@@ -283,8 +283,10 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			hasFinished: boolean;
 		}> = [];
 
-		let finishReason: LanguageModelV3FinishReason =
-			"other" as unknown as LanguageModelV3FinishReason;
+		let finishReason: LanguageModelV3FinishReason = {
+			unified: "other",
+			raw: undefined,
+		};
 		let usage: {
 			inputTokens: {
 				total: number | undefined;
@@ -322,7 +324,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 					transform(chunk, controller) {
 						// handle failed chunk parsing / validation:
 						if (!chunk.success) {
-							finishReason = "error" as unknown as LanguageModelV3FinishReason;
+							finishReason = { unified: "error", raw: undefined };
 							controller.enqueue({
 								type: "error",
 								error: chunk.error,
@@ -334,7 +336,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 
 						// handle error chunks:
 						if ("error" in value) {
-							finishReason = "error" as unknown as LanguageModelV3FinishReason;
+							finishReason = { unified: "error", raw: undefined };
 							controller.enqueue({
 								type: "error",
 								error: value.error,
@@ -373,7 +375,10 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 						const choice = value.choices[0];
 
 						if (choice?.finish_reason != null) {
-							finishReason = mapSarvamFinishReason(choice.finish_reason);
+							finishReason = {
+								unified: mapFinishReason(choice.finish_reason),
+								raw: choice.finish_reason,
+							};
 						}
 
 						if (choice?.delta == null) {
