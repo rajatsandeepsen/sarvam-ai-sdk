@@ -1,9 +1,8 @@
 import type {
-	LanguageModelV2,
-	LanguageModelV2CallOptions,
-	LanguageModelV2CallWarning,
-	LanguageModelV2Content,
-	LanguageModelV2FinishReason,
+	LanguageModelV3,
+	LanguageModelV3CallOptions,
+	LanguageModelV3Content,
+	LanguageModelV3FinishReason,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -21,8 +20,8 @@ import {
 } from "./translation-settings";
 import { convertPromptToInput } from "./utils";
 
-export class SarvamTranslationModel implements LanguageModelV2 {
-	readonly specificationVersion = "v2";
+export class SarvamTranslationModel implements LanguageModelV3 {
+	readonly specificationVersion = "v3";
 
 	readonly modelId: TranslationModelId;
 	readonly settings: TranslationSettings;
@@ -48,13 +47,11 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 	}
 
 	private async getArgs(
-		options: LanguageModelV2CallOptions & {
+		options: LanguageModelV3CallOptions & {
 			stream: boolean;
 		},
 	) {
 		const { prompt, providerOptions } = options;
-
-		const warnings: LanguageModelV2CallWarning[] = [];
 
 		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
@@ -95,14 +92,14 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 				source_language_code: from,
 				target_language_code: to,
 			},
-			warnings,
+			warnings: [],
 		};
 	}
 
 	async doGenerate(
-		options: LanguageModelV2CallOptions,
-	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
-		const { args, warnings } = await this.getArgs({
+		options: LanguageModelV3CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV3["doGenerate"]>>> {
+		const { args } = await this.getArgs({
 			...options,
 			stream: false,
 		});
@@ -124,25 +121,33 @@ export class SarvamTranslationModel implements LanguageModelV2 {
 
 		const translatedText = response.translated_text ?? "unknown";
 
-		const content: LanguageModelV2Content[] = [
+		const content: LanguageModelV3Content[] = [
 			{ type: "text", text: translatedText },
 		];
 
 		return {
 			content,
-			finishReason: "stop" as LanguageModelV2FinishReason,
+			finishReason: "stop" as unknown as LanguageModelV3FinishReason,
 			usage: {
-				inputTokens: NaN,
-				outputTokens: NaN,
-				totalTokens: NaN,
+				inputTokens: {
+					total: undefined,
+					noCache: undefined,
+					cacheRead: undefined,
+					cacheWrite: undefined,
+				},
+				outputTokens: {
+					total: undefined,
+					text: undefined,
+					reasoning: undefined,
+				},
 			},
-			warnings,
+			warnings: [],
 		};
 	}
 
 	async doStream(
-		_options: LanguageModelV2CallOptions,
-	): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
+		_options: LanguageModelV3CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
 		throw new Error("Translation feature doesn't support streaming yet");
 	}
 }

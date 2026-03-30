@@ -1,12 +1,12 @@
 import {
-	type LanguageModelV2Prompt,
+	type LanguageModelV3Prompt,
 	UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
 import type { SarvamChatPrompt } from "./types";
 
 export function convertToChatMessages(
-	prompt: LanguageModelV2Prompt,
+	prompt: LanguageModelV3Prompt,
 ): SarvamChatPrompt {
 	const messages: SarvamChatPrompt = [];
 

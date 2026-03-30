@@ -1,8 +1,7 @@
 import {
-	type LanguageModelV2CallWarning,
-	type LanguageModelV2FunctionTool,
-	type LanguageModelV2ProviderDefinedTool,
-	type LanguageModelV2ToolChoice,
+	type LanguageModelV3FunctionTool,
+	type LanguageModelV3ProviderTool,
+	type LanguageModelV3ToolChoice,
 	UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 
@@ -19,10 +18,8 @@ export function prepareTools({
 	tools,
 	toolChoice,
 }: {
-	tools?: Array<
-		LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool
-	>;
-	toolChoice?: LanguageModelV2ToolChoice;
+	tools?: Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>;
+	toolChoice?: LanguageModelV3ToolChoice;
 }): {
 	tools: SarvamTools | undefined;
 	tool_choice:
@@ -31,11 +28,11 @@ export function prepareTools({
 		| "none"
 		| "required"
 		| undefined;
-	toolWarnings: LanguageModelV2CallWarning[];
+	toolWarnings: Array<{ type: string; tool?: unknown }>;
 } {
 	// when the tools array is empty, change it to undefined to prevent errors:
 	const finalTools = tools?.length ? tools : undefined;
-	const toolWarnings: LanguageModelV2CallWarning[] = [];
+	const toolWarnings: Array<{ type: string; tool?: unknown }> = [];
 
 	if (finalTools == null) {
 		return { tools: undefined, tool_choice: undefined, toolWarnings };
@@ -44,7 +41,7 @@ export function prepareTools({
 	const sarvamTools: SarvamTools = [];
 
 	for (const tool of finalTools) {
-		if (tool.type === "provider-defined") {
+		if (tool.type === "provider") {
 			toolWarnings.push({ type: "unsupported-tool", tool });
 		} else {
 			sarvamTools.push({

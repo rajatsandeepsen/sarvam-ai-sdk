@@ -1,8 +1,4 @@
-import type {
-	SpeechModelV2,
-	SpeechModelV2CallOptions,
-	SpeechModelV2CallWarning,
-} from "@ai-sdk/provider";
+import type { SpeechModelV3, SpeechModelV3CallOptions } from "@ai-sdk/provider";
 import {
 	combineHeaders,
 	createJsonResponseHandler,
@@ -29,8 +25,8 @@ interface SpeechModelConfig extends SarvamConfig {
 	speech?: SpeechSettings;
 }
 
-export class SarvamSpeechModel implements SpeechModelV2 {
-	readonly specificationVersion = "v2";
+export class SarvamSpeechModel implements SpeechModelV3 {
+	readonly specificationVersion = "v3";
 
 	get provider(): string {
 		return this.config.provider;
@@ -47,7 +43,7 @@ export class SarvamSpeechModel implements SpeechModelV2 {
 	) {}
 
 	private async getArgs(
-		options: SpeechModelV2CallOptions & { stream: boolean },
+		options: SpeechModelV3CallOptions & { stream: boolean },
 	) {
 		const {
 			text,
@@ -56,7 +52,6 @@ export class SarvamSpeechModel implements SpeechModelV2 {
 			speed,
 			providerOptions,
 		} = options;
-		const warnings: SpeechModelV2CallWarning[] = [];
 
 		// Parse provider options
 		const sarvamOptions = await parseProviderOptions({
@@ -91,13 +86,13 @@ export class SarvamSpeechModel implements SpeechModelV2 {
 
 		return {
 			requestBody,
-			warnings,
+			warnings: [],
 		};
 	}
 
 	async doGenerate(
-		options: SpeechModelV2CallOptions,
-	): Promise<Awaited<ReturnType<SpeechModelV2["doGenerate"]>>> {
+		options: SpeechModelV3CallOptions,
+	): Promise<Awaited<ReturnType<SpeechModelV3["doGenerate"]>>> {
 		const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 		const { requestBody, warnings } = await this.getArgs({
 			...options,

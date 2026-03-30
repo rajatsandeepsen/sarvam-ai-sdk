@@ -1,6 +1,6 @@
-import type { LanguageModelV2Prompt } from "@ai-sdk/provider";
+import type { LanguageModelV3Prompt } from "@ai-sdk/provider";
 
-export const convertPromptToInput = (prompt: LanguageModelV2Prompt) => {
+export const convertPromptToInput = (prompt: LanguageModelV3Prompt) => {
 	return prompt
 		.filter((m) => m.role === "user")
 		.flatMap((m) =>

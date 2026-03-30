@@ -1,7 +1,6 @@
 import type {
-	TranscriptionModelV2,
-	TranscriptionModelV2CallOptions,
-	TranscriptionModelV2CallWarning,
+	TranscriptionModelV3,
+	TranscriptionModelV3CallOptions,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -26,8 +25,8 @@ interface SpeechTranslationModelConfig extends SarvamConfig {
 	speechTranslation?: SpeechTranslationSettings;
 }
 
-export class SarvamSpeechTranslationModel implements TranscriptionModelV2 {
-	readonly specificationVersion = "v2";
+export class SarvamSpeechTranslationModel implements TranscriptionModelV3 {
+	readonly specificationVersion = "v3";
 
 	constructor(
 		readonly modelId: SpeechTranslationModelId,
@@ -43,10 +42,9 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV2 {
 	}
 
 	private async getArgs(
-		options: TranscriptionModelV2CallOptions & { stream: boolean },
+		options: TranscriptionModelV3CallOptions & { stream: boolean },
 	) {
 		const { audio, mediaType, providerOptions } = options;
-		const warnings: TranscriptionModelV2CallWarning[] = [];
 
 		const sarvamOptions = await parseProviderOptions({
 			provider: "sarvam",
@@ -76,13 +74,13 @@ export class SarvamSpeechTranslationModel implements TranscriptionModelV2 {
 
 		return {
 			formData,
-			warnings,
+			warnings: [],
 		};
 	}
 
 	async doGenerate(
-		options: TranscriptionModelV2CallOptions,
-	): Promise<Awaited<ReturnType<TranscriptionModelV2["doGenerate"]>>> {
+		options: TranscriptionModelV3CallOptions,
+	): Promise<Awaited<ReturnType<TranscriptionModelV3["doGenerate"]>>> {
 		const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 		const { formData, warnings } = await this.getArgs({
 			...options,

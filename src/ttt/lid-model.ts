@@ -1,9 +1,8 @@
 import type {
-	LanguageModelV2,
-	LanguageModelV2CallOptions,
-	LanguageModelV2CallWarning,
-	LanguageModelV2Content,
-	LanguageModelV2FinishReason,
+	LanguageModelV3,
+	LanguageModelV3CallOptions,
+	LanguageModelV3Content,
+	LanguageModelV3FinishReason,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -15,8 +14,8 @@ import { sarvamFailedResponseHandler } from "../error";
 import { sarvamLidResponseSchema } from "./lid-settings";
 import { convertPromptToInput } from "./utils";
 
-export class SarvamLidModel implements LanguageModelV2 {
-	readonly specificationVersion = "v2";
+export class SarvamLidModel implements LanguageModelV3 {
+	readonly specificationVersion = "v3";
 
 	readonly modelId: "unknown";
 
@@ -37,26 +36,24 @@ export class SarvamLidModel implements LanguageModelV2 {
 	}
 
 	private getArgs(
-		options: LanguageModelV2CallOptions & {
+		options: LanguageModelV3CallOptions & {
 			stream: boolean;
 		},
 	) {
 		const { prompt } = options;
 
-		const warnings: LanguageModelV2CallWarning[] = [];
-
 		return {
 			args: {
 				input: convertPromptToInput(prompt),
 			},
-			warnings,
+			warnings: [],
 		};
 	}
 
 	async doGenerate(
-		options: LanguageModelV2CallOptions,
-	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
-		const { args, warnings } = this.getArgs({
+		options: LanguageModelV3CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV3["doGenerate"]>>> {
+		const { args } = this.getArgs({
 			...options,
 			stream: false,
 		});
@@ -78,25 +75,33 @@ export class SarvamLidModel implements LanguageModelV2 {
 
 		const languageCode = response.language_code ?? undefined;
 
-		const content: LanguageModelV2Content[] = [
+		const content: LanguageModelV3Content[] = [
 			{ type: "text", text: languageCode ?? "unknown" },
 		];
 
 		return {
 			content,
-			finishReason: "stop" as LanguageModelV2FinishReason,
+			finishReason: "stop" as unknown as LanguageModelV3FinishReason,
 			usage: {
-				inputTokens: NaN,
-				outputTokens: NaN,
-				totalTokens: NaN,
+				inputTokens: {
+					total: undefined,
+					noCache: undefined,
+					cacheRead: undefined,
+					cacheWrite: undefined,
+				},
+				outputTokens: {
+					total: undefined,
+					text: undefined,
+					reasoning: undefined,
+				},
 			},
-			warnings,
+			warnings: [],
 		};
 	}
 
 	async doStream(
-		_options: LanguageModelV2CallOptions,
-	): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
+		_options: LanguageModelV3CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
 		throw new Error(
 			"Language Identification feature doesn't support streaming yet",
 		);

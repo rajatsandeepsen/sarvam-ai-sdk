@@ -1,13 +1,13 @@
 import {
 	InvalidResponseDataError,
-	type LanguageModelV2,
-	type LanguageModelV2CallOptions,
-	type LanguageModelV2CallWarning,
-	type LanguageModelV2Content,
-	type LanguageModelV2FinishReason,
-	type LanguageModelV2StreamPart,
-	type LanguageModelV2Text,
-	type LanguageModelV2ToolCall,
+	type LanguageModelV3,
+	type LanguageModelV3CallOptions,
+	type LanguageModelV3Content,
+	type LanguageModelV3FinishReason,
+	type LanguageModelV3StreamPart,
+	type LanguageModelV3Text,
+	type LanguageModelV3ToolCall,
+	type SharedV3Warning,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -33,8 +33,8 @@ import {
 } from "./settings";
 import { getResponseMetadata, mapSarvamFinishReason } from "./utils";
 
-export class SarvamChatLanguageModel implements LanguageModelV2 {
-	readonly specificationVersion = "v2";
+export class SarvamChatLanguageModel implements LanguageModelV3 {
+	readonly specificationVersion = "v3";
 
 	readonly modelId: ChatModelId;
 	readonly settings: ChatSettings;
@@ -61,7 +61,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 	}
 
 	private async getArgs(
-		options: LanguageModelV2CallOptions & {
+		options: LanguageModelV3CallOptions & {
 			stream: boolean;
 		},
 	) {
@@ -82,12 +82,12 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			stream,
 		} = options;
 
-		const warnings: LanguageModelV2CallWarning[] = [];
+		const warnings: SharedV3Warning[] = [];
 
 		if (topK) {
 			warnings.push({
-				type: "unsupported-setting",
-				setting: "topK",
+				type: "unsupported",
+				feature: "topK",
 			});
 		}
 
@@ -159,13 +159,15 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 				...baseArgs,
 				...(toolsArg ?? {}),
 			},
-			warnings: [...warnings, ...(toolsArg?.toolWarnings ?? [])],
+			warnings: [...warnings, ...(toolsArg?.toolWarnings ?? [])] as Array<
+				{ type: string; setting?: string } | { type: string; tool?: unknown }
+			>,
 		};
 	}
 
 	async doGenerate(
-		options: LanguageModelV2CallOptions,
-	): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
+		options: LanguageModelV3CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV3["doGenerate"]>>> {
 		const { args, warnings } = await this.getArgs({
 			...options,
 			stream: false,
@@ -192,13 +194,13 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 
 		const choice = response.choices[0];
 
-		const content: LanguageModelV2Content[] = [];
+		const content: LanguageModelV3Content[] = [];
 
 		if (choice.message.content) {
 			content.push({
 				type: "text",
 				text: choice.message.content,
-			} as LanguageModelV2Text);
+			} as LanguageModelV3Text);
 		}
 
 		// Add reasoning content if present
@@ -215,7 +217,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 				content.push({
 					type: "text",
 					text: choice.message.tool_calls[0].function.arguments,
-				} as LanguageModelV2Text);
+				} as LanguageModelV3Text);
 			}
 
 			for (const toolCall of choice.message.tool_calls) {
@@ -224,7 +226,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 					toolCallId: toolCall.id ?? (this.config.generateId ?? generateId)(),
 					toolName: toolCall.function.name,
 					input: toolCall.function.arguments,
-				} as LanguageModelV2ToolCall);
+				} as LanguageModelV3ToolCall);
 			}
 		}
 
@@ -232,22 +234,28 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			content,
 			finishReason: mapSarvamFinishReason(choice.finish_reason),
 			usage: {
-				inputTokens: response.usage?.prompt_tokens ?? 0,
-				outputTokens: response.usage?.completion_tokens ?? 0,
-				totalTokens:
-					(response.usage?.prompt_tokens ?? 0) +
-					(response.usage?.completion_tokens ?? 0),
+				inputTokens: {
+					total: response.usage?.prompt_tokens ?? undefined,
+					noCache: undefined,
+					cacheRead: undefined,
+					cacheWrite: undefined,
+				},
+				outputTokens: {
+					total: response.usage?.completion_tokens ?? undefined,
+					text: undefined,
+					reasoning: undefined,
+				},
 			},
 			warnings,
 			request: { body },
 			response: { headers: responseHeaders, body: rawResponse },
-		};
+		} as unknown as Awaited<ReturnType<LanguageModelV3["doGenerate"]>>;
 	}
 
 	async doStream(
-		options: LanguageModelV2CallOptions,
-	): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
-		const { args, warnings } = await this.getArgs({ ...options, stream: true });
+		options: LanguageModelV3CallOptions,
+	): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
+		const { args } = await this.getArgs({ ...options, stream: true });
 
 		const body = JSON.stringify({ ...args, stream: true });
 
@@ -275,13 +283,32 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			hasFinished: boolean;
 		}> = [];
 
-		let finishReason: LanguageModelV2FinishReason = "unknown";
+		let finishReason: LanguageModelV3FinishReason =
+			"other" as unknown as LanguageModelV3FinishReason;
 		let usage: {
-			inputTokens: number | undefined;
-			outputTokens: number | undefined;
+			inputTokens: {
+				total: number | undefined;
+				noCache: number | undefined;
+				cacheRead: number | undefined;
+				cacheWrite: number | undefined;
+			};
+			outputTokens: {
+				total: number | undefined;
+				text: number | undefined;
+				reasoning: number | undefined;
+			};
 		} = {
-			inputTokens: undefined,
-			outputTokens: undefined,
+			inputTokens: {
+				total: undefined,
+				noCache: undefined,
+				cacheRead: undefined,
+				cacheWrite: undefined,
+			},
+			outputTokens: {
+				total: undefined,
+				text: undefined,
+				reasoning: undefined,
+			},
 		};
 		let isFirstChunk = true;
 		const _getThisConfig = this.config;
@@ -290,12 +317,12 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 			stream: response.pipeThrough(
 				new TransformStream<
 					ParseResult<z.infer<typeof chatChunkSchema>>,
-					LanguageModelV2StreamPart
+					LanguageModelV3StreamPart
 				>({
 					transform(chunk, controller) {
 						// handle failed chunk parsing / validation:
 						if (!chunk.success) {
-							finishReason = "error";
+							finishReason = "error" as unknown as LanguageModelV3FinishReason;
 							controller.enqueue({
 								type: "error",
 								error: chunk.error,
@@ -307,7 +334,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 
 						// handle error chunks:
 						if ("error" in value) {
-							finishReason = "error";
+							finishReason = "error" as unknown as LanguageModelV3FinishReason;
 							controller.enqueue({
 								type: "error",
 								error: value.error,
@@ -329,9 +356,17 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 
 						if (value.x_sarvam?.usage != null) {
 							usage = {
-								inputTokens: value.x_sarvam.usage.prompt_tokens ?? undefined,
-								outputTokens:
-									value.x_sarvam.usage.completion_tokens ?? undefined,
+								inputTokens: {
+									total: value.x_sarvam.usage.prompt_tokens ?? undefined,
+									noCache: undefined,
+									cacheRead: undefined,
+									cacheWrite: undefined,
+								},
+								outputTokens: {
+									total: value.x_sarvam.usage.completion_tokens ?? undefined,
+									text: undefined,
+									reasoning: undefined,
+								},
 							};
 						}
 
@@ -421,7 +456,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 												toolCallId: toolCall.id,
 												toolName: toolCall.name,
 												input: toolCall.arguments,
-											} as LanguageModelV2ToolCall);
+											} as LanguageModelV3ToolCall);
 											toolCall.hasFinished = true;
 										}
 									}
@@ -458,7 +493,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 										toolCallId: toolCall.id,
 										toolName: toolCall.name,
 										input: toolCall.arguments,
-									} as LanguageModelV2ToolCall);
+									} as LanguageModelV3ToolCall);
 									toolCall.hasFinished = true;
 								}
 							}
@@ -469,12 +504,7 @@ export class SarvamChatLanguageModel implements LanguageModelV2 {
 						controller.enqueue({
 							type: "finish",
 							finishReason,
-							usage: {
-								inputTokens: usage.inputTokens ?? 0,
-								outputTokens: usage.outputTokens ?? 0,
-								totalTokens:
-									(usage.inputTokens ?? 0) + (usage.outputTokens ?? 0),
-							},
+							usage,
 						});
 					},
 				}),
