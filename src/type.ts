@@ -6,11 +6,6 @@ import type {
 
 import type { ChatModelId, ChatSettings } from "./chat/settings";
 import type { MoreSarvamLanguageCode, SarvamLanguageCode } from "./config";
-
-import type {
-	SpeechTranslationModelId,
-	SpeechTranslationSettings,
-} from "./stt/speech-translation-settings";
 import type {
 	TranscriptionModelId,
 	TranscriptionSettings,
@@ -21,6 +16,7 @@ import type {
 	TranslationSettings,
 } from "./ttt/translation-settings";
 import type { TransliterateSettings } from "./ttt/transliterate-settings";
+import type { SarvamDocumentIntelligence } from "./vision/document-intelligence";
 
 export type SarvamProvider = {
 	/**
@@ -64,33 +60,16 @@ export type SarvamProvider = {
 	 *		audio: await readFile("./audio.wav"),
 	 * 	});
 	 */
-	transcription<T extends TranscriptionModelId>(
-		modelId: T,
+	transcription(
+		modelId: TranscriptionModelId,
 		/**
-		 * Audio source language code
-		 * Note: This parameter is optional for saarika:v2.5 model.
+		 * Audio source language code.
+		 * Use "unknown" for automatic language detection.
 		 *
-		 * @default unknown
+		 * @default "unknown"
 		 */
-		languageCode?:
-			| (T extends "saaras:v3" ? MoreSarvamLanguageCode : never)
-			| SarvamLanguageCode
-			| "unknown",
-		settings?: TranscriptionSettings<T>,
-	): TranscriptionModelV3;
-
-	/**
-	 * Creates a Sarvam model for Speech translation.
-	 *
-	 * @example
-	 * 	const { text } = await transcribe({
-	 *		model: sarvam.speechTranslation("saaras:v2.5"),
-	 *		audio: await readFile("./audio.wav"),
-	 * 	});
-	 */
-	speechTranslation<T extends SpeechTranslationModelId>(
-		modelId: T,
-		settings?: SpeechTranslationSettings,
+		languageCode?: SarvamLanguageCode | MoreSarvamLanguageCode | "unknown",
+		settings?: TranscriptionSettings,
 	): TranscriptionModelV3;
 
 	/**
@@ -101,12 +80,12 @@ export type SarvamProvider = {
 	 *		text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
 	 * 	});
 	 *
-	 * 	await writeFile("./audio.wav", Buffer.from(audio.base64, "base64"););
+	 * 	await writeFile("./audio.wav", Buffer.from(audio.base64, "base64"));
 	 */
-	speech<T extends SpeechModelId>(
-		modelId: T,
+	speech(
+		modelId: SpeechModelId,
 		languageCode: SarvamLanguageCode,
-		settings?: SpeechSettings<T>,
+		settings?: SpeechSettings,
 	): SpeechModelV3;
 
 	/**
@@ -152,4 +131,18 @@ export type SarvamProvider = {
 	 *	});
 	 */
 	languageIdentification(): LanguageModelV3;
+
+	/**
+	 * Sarvam Vision Document Intelligence client.
+	 * Digitizes documents (PDF, PNG, JPEG, ZIP) using OCR across 23 languages.
+	 *
+	 * @example
+	 * 	const result = await sarvam.documentIntelligence.digitize(
+	 * 		await readFile("./invoice.pdf"),
+	 * 		"invoice.pdf",
+	 * 		{ language: "hi-IN", outputFormat: "md" }
+	 * 	);
+	 * 	await writeFile("./output.zip", result.output);
+	 */
+	documentIntelligence: SarvamDocumentIntelligence;
 };

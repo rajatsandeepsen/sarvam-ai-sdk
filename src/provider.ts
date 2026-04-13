@@ -2,13 +2,13 @@ import { loadApiKey, withoutTrailingSlash } from "@ai-sdk/provider-utils";
 import { SarvamChatLanguageModel } from "./chat/language-model";
 import type { ChatModelId, ChatSettings } from "./chat/settings";
 import type { SarvamProviderSettings } from "./config";
-import { SarvamSpeechTranslationModel } from "./stt/speech-translation-model";
 import { SarvamTranscriptionModel } from "./stt/transcription-model";
 import { SarvamSpeechModel } from "./tts/speech-model";
 import { SarvamLidModel } from "./ttt/lid-model";
 import { SarvamTranslationModel } from "./ttt/translation-model";
 import { SarvamTransliterateModel } from "./ttt/transliterate-model";
 import type { SarvamProvider } from "./type";
+import { SarvamDocumentIntelligence } from "./vision/document-intelligence";
 
 /**
  * Create an Sarvam provider instance.
@@ -78,15 +78,6 @@ export function createSarvam(options: SarvamProviderSettings = {}) {
 			transcription: settings,
 		});
 
-	provider.speechTranslation = (modelId, settings) =>
-		new SarvamSpeechTranslationModel(modelId, {
-			provider: "sarvam.speech-translation",
-			url: ({ path }) => `${baseURL}${path}`,
-			headers: getHeaders,
-			fetch: options.fetch,
-			speechTranslation: settings,
-		});
-
 	provider.transliterate = (settings) =>
 		new SarvamTransliterateModel(settings, {
 			provider: "sarvam.transliterate",
@@ -110,6 +101,12 @@ export function createSarvam(options: SarvamProviderSettings = {}) {
 			headers: getHeaders,
 			fetch: options.fetch,
 		});
+
+	provider.documentIntelligence = new SarvamDocumentIntelligence(
+		baseURL,
+		getHeaders,
+		options.fetch,
+	);
 
 	return provider;
 }

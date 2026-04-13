@@ -15,7 +15,7 @@ console.log({ text }); // പാചകം തുടരൂ, സുഹൃത്ത
 import { experimental_generateSpeech as generateSpeech } from "ai";
 
 const { audio } = await generateSpeech({
-	model: sarvam.speech("bulbul:v2", "ml-IN"),
+	model: sarvam.speech("bulbul:v3", "ml-IN"),
 	text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
 });
 
@@ -31,13 +31,6 @@ const { text: transcription } = await transcribe({
 });
 
 console.log({ transcription }); // പാചകം തുടരും സുഹൃത്തുക്കളെ
-
-const { text: speechTranslation } = await transcribe({
-	model: sarvam.speechTranslation("saaras:v2.5"),
-	audio: await readFile("./test/transcript-test.wav"),
-});
-
-console.log({ speechTranslation }); // Cooking continues, my friends
 
 const { text: translation } = await generateText({
 	model: sarvam.translation("mayura:v1", {

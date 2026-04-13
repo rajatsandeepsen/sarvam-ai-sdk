@@ -145,6 +145,11 @@ export class SarvamTranscriptionModel implements TranscriptionModelV3 {
 					response.timestamps.end_time_seconds.length - 1
 				] ?? undefined,
 			warnings,
+			providerMetadata: {
+				sarvam: {
+					languageProbability: response.language_probability ?? undefined,
+				},
+			},
 			response: {
 				timestamp: currentDate,
 				modelId: this.modelId,

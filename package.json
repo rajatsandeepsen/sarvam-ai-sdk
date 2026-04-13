@@ -1,19 +1,21 @@
 {
-	"name": "sarvam-ai-sdk",
+  "name": "sarvam-ai-sdk",
+  "type": "module",
 	"description": "Sarvam provider support for Vercel's AI-SDK",
-	"version": "0.3.0-beta",
+	"version": "0.4.0",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist/**/*"
 	],
-	"scripts": {
-		"build": "tsdown",
-		"build:watch": "tsdown --watch",
-		"type-check": "tsc --noEmit",
-		"check": "biome check"
-	},
+  "scripts": {
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "type-check": "tsc --noEmit",
+    "check": "biome check",
+    "test": "tsx --env-file=.env test/index.ts"
+  },
 	"exports": {
 		"./package.json": "./package.json",
 		".": {
@@ -31,6 +33,7 @@
 		"@types/node": "20.17.24",
 		"ai": "^6.0.0",
 		"tsdown": "^0.15.10",
+		"tsx": "^4.21.0",
 		"typescript": "5.6.3",
 		"zod": "^4.1.8"
 	},
@@ -46,12 +49,12 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/rajatsandeepsen/sarvam-ai-sdk.git"
+		"url": "git+https://github.com/sarvamai/sarvam-ai-sdk.git"
 	},
 	"bugs": {
-		"url": "https://github.com/rajatsandeepsen/sarvam-ai-sdk/issues"
+		"url": "https://github.com/sarvamai/sarvam-ai-sdk/issues"
 	},
-	"homepage": "https://v6.ai-sdk.dev/docs",
+	"homepage": "https://docs.sarvam.ai",
 	"keywords": [
 		"ai",
 		"ai-sdk",
