@@ -2,7 +2,6 @@ import type {
 	LanguageModelV3,
 	LanguageModelV3CallOptions,
 	LanguageModelV3Content,
-	LanguageModelV3FinishReason,
 } from "@ai-sdk/provider";
 import {
 	combineHeaders,
@@ -110,7 +109,7 @@ export class SarvamTransliterateModel implements LanguageModelV3 {
 			fetch: this.config.fetch,
 		});
 
-		const transliteratedText = response.transliterated_text ?? "unknown";
+		const transliteratedText = response.transliterated_text ?? "";
 
 		const content: LanguageModelV3Content[] = [
 			{ type: "text", text: transliteratedText },
@@ -118,7 +117,7 @@ export class SarvamTransliterateModel implements LanguageModelV3 {
 
 		return {
 			content,
-			finishReason: "stop" as unknown as LanguageModelV3FinishReason,
+			finishReason: { unified: "stop" as const, raw: undefined },
 			usage: {
 				inputTokens: {
 					total: undefined,

@@ -16,7 +16,7 @@ export type TransliterateSettings<
 	/**
 	 * The language code of the input text. This specifies the source language for transliteration.
 	 *
-	 * @defualt "auto"
+	 * @default "auto"
 	 */
 	from?: F;
 	/**
