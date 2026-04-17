@@ -8,7 +8,6 @@ import { SarvamLidModel } from "./ttt/lid-model";
 import { SarvamTranslationModel } from "./ttt/translation-model";
 import { SarvamTransliterateModel } from "./ttt/transliterate-model";
 import type { SarvamProvider } from "./type";
-import { SarvamDocumentIntelligence } from "./vision/document-intelligence";
 
 /**
  * Create an Sarvam provider instance.
@@ -101,12 +100,6 @@ export function createSarvam(options: SarvamProviderSettings = {}) {
 			headers: getHeaders,
 			fetch: options.fetch,
 		});
-
-	provider.documentIntelligence = new SarvamDocumentIntelligence(
-		baseURL,
-		getHeaders,
-		options.fetch,
-	);
 
 	return provider;
 }

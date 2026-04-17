@@ -16,7 +16,6 @@ import type {
 	TranslationSettings,
 } from "./ttt/translation-settings";
 import type { TransliterateSettings } from "./ttt/transliterate-settings";
-import type { SarvamDocumentIntelligence } from "./vision/document-intelligence";
 
 export type SarvamProvider = {
 	/**
@@ -131,18 +130,4 @@ export type SarvamProvider = {
 	 *	});
 	 */
 	languageIdentification(): LanguageModelV3;
-
-	/**
-	 * Sarvam Vision Document Intelligence client.
-	 * Digitizes documents (PDF, PNG, JPEG, ZIP) using OCR across 23 languages.
-	 *
-	 * @example
-	 * 	const result = await sarvam.documentIntelligence.digitize(
-	 * 		await readFile("./invoice.pdf"),
-	 * 		"invoice.pdf",
-	 * 		{ language: "hi-IN", outputFormat: "md" }
-	 * 	);
-	 * 	await writeFile("./output.zip", result.output);
-	 */
-	documentIntelligence: SarvamDocumentIntelligence;
 };
