@@ -23,7 +23,7 @@ export type TranslationSettings<
 	/**
 	 * The language code of the input text. This specifies the source language for transliteration.
 	 *
-	 * @defualt "auto"
+	 * @default "auto"
 	 * `mayura:v1` supports automatic language detection using ‘auto’ as the source language code.
 	 */
 	from?:

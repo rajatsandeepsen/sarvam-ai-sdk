@@ -5,12 +5,7 @@ import { sarvamErrorDataSchema } from "../error";
  * @description Production models
  * @see https://console.sarvam.com/docs/models
  */
-export type ChatModelId =
-	| "sarvam-30b"
-	| "sarvam-30b-16k"
-	| "sarvam-105b"
-	| "sarvam-105b-32k"
-	| (string & {});
+export type ChatModelId = "sarvam-30b" | "sarvam-105b" | (string & {});
 
 export type ChatSettings = {
 	/**

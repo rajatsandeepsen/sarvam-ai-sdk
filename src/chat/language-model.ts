@@ -108,7 +108,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 
 			// standardized settings:
 			max_tokens: maxOutputTokens,
-			temperature: temperature === 0 ? undefined : temperature,
+			temperature,
 			top_p: topP,
 			frequency_penalty: frequencyPenalty,
 			presence_penalty: presencePenalty,
@@ -194,6 +194,13 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 
 		const choice = response.choices[0];
 
+		if (!choice) {
+			throw new InvalidResponseDataError({
+				data: response,
+				message: "No choices returned in response",
+			});
+		}
+
 		const content: LanguageModelV3Content[] = [];
 
 		if (choice.message.content) {
@@ -203,11 +210,11 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			} as LanguageModelV3Text);
 		}
 
-		// Add reasoning content if present
-		if (choice.message.reasoning) {
+		const reasoningText = choice.message.reasoning ?? choice.message.reasoning_content;
+		if (reasoningText) {
 			content.push({
 				type: "reasoning",
-				text: choice.message.reasoning,
+				text: reasoningText,
 			});
 		}
 
@@ -232,7 +239,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 
 		return {
 			content,
-			finishReason: mapFinishReason(choice.finish_reason),
+			finishReason: { unified: mapFinishReason(choice.finish_reason), raw: choice.finish_reason ?? undefined },
 			usage: {
 				inputTokens: {
 					total: response.usage?.prompt_tokens ?? undefined,
@@ -313,7 +320,6 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			},
 		};
 		let isFirstChunk = true;
-		const _getThisConfig = this.config;
 
 		return {
 			stream: response.pipeThrough(

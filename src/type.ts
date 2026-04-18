@@ -6,11 +6,6 @@ import type {
 
 import type { ChatModelId, ChatSettings } from "./chat/settings";
 import type { MoreSarvamLanguageCode, SarvamLanguageCode } from "./config";
-
-import type {
-	SpeechTranslationModelId,
-	SpeechTranslationSettings,
-} from "./stt/speech-translation-settings";
 import type {
 	TranscriptionModelId,
 	TranscriptionSettings,
@@ -67,30 +62,13 @@ export type SarvamProvider = {
 	transcription<T extends TranscriptionModelId>(
 		modelId: T,
 		/**
-		 * Audio source language code
-		 * Note: This parameter is optional for saarika:v2.5 model.
+		 * Audio source language code.
+		 * Use "unknown" for automatic language detection.
 		 *
-		 * @default unknown
+		 * @default "unknown"
 		 */
-		languageCode?:
-			| (T extends "saaras:v3" ? MoreSarvamLanguageCode : never)
-			| SarvamLanguageCode
-			| "unknown",
+		languageCode?: SarvamLanguageCode | MoreSarvamLanguageCode | "unknown",
 		settings?: TranscriptionSettings<T>,
-	): TranscriptionModelV3;
-
-	/**
-	 * Creates a Sarvam model for Speech translation.
-	 *
-	 * @example
-	 * 	const { text } = await transcribe({
-	 *		model: sarvam.speechTranslation("saaras:v2.5"),
-	 *		audio: await readFile("./audio.wav"),
-	 * 	});
-	 */
-	speechTranslation<T extends SpeechTranslationModelId>(
-		modelId: T,
-		settings?: SpeechTranslationSettings,
 	): TranscriptionModelV3;
 
 	/**
@@ -101,7 +79,7 @@ export type SarvamProvider = {
 	 *		text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
 	 * 	});
 	 *
-	 * 	await writeFile("./audio.wav", Buffer.from(audio.base64, "base64"););
+	 * 	await writeFile("./audio.wav", Buffer.from(audio.base64, "base64"));
 	 */
 	speech<T extends SpeechModelId>(
 		modelId: T,

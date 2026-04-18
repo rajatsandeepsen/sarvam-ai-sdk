@@ -3,8 +3,9 @@ import { z } from "zod";
 
 export const sarvamErrorDataSchema = z.object({
 	error: z.object({
+		request_id: z.string().nullable().optional(),
 		message: z.string(),
-		type: z.string(),
+		code: z.string(),
 	}),
 });
 

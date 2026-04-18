@@ -2,7 +2,6 @@ import { loadApiKey, withoutTrailingSlash } from "@ai-sdk/provider-utils";
 import { SarvamChatLanguageModel } from "./chat/language-model";
 import type { ChatModelId, ChatSettings } from "./chat/settings";
 import type { SarvamProviderSettings } from "./config";
-import { SarvamSpeechTranslationModel } from "./stt/speech-translation-model";
 import { SarvamTranscriptionModel } from "./stt/transcription-model";
 import { SarvamSpeechModel } from "./tts/speech-model";
 import { SarvamLidModel } from "./ttt/lid-model";
@@ -76,15 +75,6 @@ export function createSarvam(options: SarvamProviderSettings = {}) {
 			headers: getHeaders,
 			fetch: options.fetch,
 			transcription: settings,
-		});
-
-	provider.speechTranslation = (modelId, settings) =>
-		new SarvamSpeechTranslationModel(modelId, {
-			provider: "sarvam.speech-translation",
-			url: ({ path }) => `${baseURL}${path}`,
-			headers: getHeaders,
-			fetch: options.fetch,
-			speechTranslation: settings,
 		});
 
 	provider.transliterate = (settings) =>

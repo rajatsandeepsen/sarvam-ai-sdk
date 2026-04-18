@@ -69,19 +69,6 @@ import { experimental_transcribe as transcribe } from "ai";
 import { readFile } from "fs/promises";
 
 const { text } = await transcribe({
-    model: sarvam.transcription("saarika:v2.5", "ml-IN"),
-    audio: await readFile("./src/transcript-test.wav"),
-});
-
-console.log(text); // പാചകം തുടരും സുഹൃത്തുക്കളെ
-```
-
-```ts
-import { sarvam } from "sarvam-ai-sdk";
-import { experimental_transcribe as transcribe } from "ai";
-import { readFile } from "fs/promises";
-
-const { text } = await transcribe({
     model: sarvam.transcription("saaras:v3", "en-IN"),
     audio: await readFile("./src/transcript-test.wav"),
 });
@@ -89,24 +76,9 @@ const { text } = await transcribe({
 console.log(text); // Pachakam thudaroo, suhruthukkale.
 ```
 
-## Speech-to-Text-Translate
-
-```ts
-import { sarvam } from "sarvam-ai-sdk";
-import { experimental_transcribe as transcribe } from "ai";
-import { readFile } from "fs/promises";
-
-const result = await transcribe({
-    model: sarvam.speechTranslation("saaras:v2.5"),
-    audio: await readFile("./src/transcript-test.wav"),
-});
-
-console.log(result.text); // Cooking continues, my friends
-```
-
 ## Translation
 
-> NB: Only transliterates `prompt` and `role:user` messages, not `role:system` not `role:assistant`.
+> NB: Only translates `prompt` and `role:user` messages, not `role:system` not `role:assistant`.
 
 ```ts
 import { sarvam } from "sarvam-ai-sdk";
@@ -232,11 +204,8 @@ sarvam.languageIdentification();
 // Text-to-Speech
 sarvam.speech("bulbul:v3", "ml-IN");
 
-// Speech-to-Text + Transcribe to same language
-sarvam.transcription("saarika:v2.5");
-
-// Speech-to-Text + Translate to English
-sarvam.speechTranslation("saaras:v3");
+// Speech-to-Text
+sarvam.transcription("saaras:v3");
 ```
 
 

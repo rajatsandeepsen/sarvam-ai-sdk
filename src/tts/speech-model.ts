@@ -119,6 +119,10 @@ export class SarvamSpeechModel implements SpeechModelV3 {
 
 		const audio = value.audios[0];
 
+		if (audio == null) {
+			throw new Error("No audio returned in response");
+		}
+
 		return {
 			audio,
 			warnings,

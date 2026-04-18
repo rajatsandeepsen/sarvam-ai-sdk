@@ -34,6 +34,17 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 bun.lock
+package-lock.json
 test.ts
 test
 */**/.mcmd
+
+# generated audio/output files
+*.mp3
+*.wav_output
+
+# IDE / tool artifacts
+.specstory/
+
+# scratch / local scripts
+p.py
