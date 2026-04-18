@@ -59,8 +59,8 @@ export type SarvamProvider = {
 	 *		audio: await readFile("./audio.wav"),
 	 * 	});
 	 */
-	transcription(
-		modelId: TranscriptionModelId,
+	transcription<T extends TranscriptionModelId>(
+		modelId: T,
 		/**
 		 * Audio source language code.
 		 * Use "unknown" for automatic language detection.
@@ -68,7 +68,7 @@ export type SarvamProvider = {
 		 * @default "unknown"
 		 */
 		languageCode?: SarvamLanguageCode | MoreSarvamLanguageCode | "unknown",
-		settings?: TranscriptionSettings,
+		settings?: TranscriptionSettings<T>,
 	): TranscriptionModelV3;
 
 	/**
@@ -81,10 +81,10 @@ export type SarvamProvider = {
 	 *
 	 * 	await writeFile("./audio.wav", Buffer.from(audio.base64, "base64"));
 	 */
-	speech(
-		modelId: SpeechModelId,
+	speech<T extends SpeechModelId>(
+		modelId: T,
 		languageCode: SarvamLanguageCode,
-		settings?: SpeechSettings,
+		settings?: SpeechSettings<T>,
 	): SpeechModelV3;
 
 	/**

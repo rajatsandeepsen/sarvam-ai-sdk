@@ -13,7 +13,9 @@ export const transcriptionProviderOptionsSchema = z.object({
 	with_timestamps: z.boolean().nullish(),
 });
 
-export type TranscriptionSettings = {
+export type TranscriptionSettings<
+	T extends TranscriptionModelId = TranscriptionModelId,
+> = {
 	/**
 	 * Mode of operation.
 	 *

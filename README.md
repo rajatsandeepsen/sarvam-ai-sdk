@@ -183,27 +183,6 @@ const { object } = await generateObject({
 console.log(object);
 ```
 
-## Document Intelligence
-
-Digitize documents (PDF, PNG, JPEG, ZIP of images) using Sarvam Vision with OCR support for 23 languages.
-Returns a ZIP buffer containing the extracted content.
-
-```ts
-import { sarvam } from "sarvam-ai-sdk";
-import { readFile, writeFile } from "fs/promises";
-
-const file = await readFile("./invoice.pdf");
-
-const result = await sarvam.documentIntelligence.digitize(
-    file,
-    "invoice.pdf",
-    { language: "hi-IN", outputFormat: "md" },
-);
-
-await writeFile("./output.zip", result.output);
-console.log(`Pages processed: ${result.pageMetrics.pagesSucceeded}`);
-```
-
 ## All APIs
 
 ```ts
@@ -227,9 +206,6 @@ sarvam.speech("bulbul:v3", "ml-IN");
 
 // Speech-to-Text
 sarvam.transcription("saaras:v3");
-
-// Document Intelligence (Sarvam Vision)
-sarvam.documentIntelligence.digitize(file, "document.pdf", { language: "hi-IN" });
 ```
 
 

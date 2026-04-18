@@ -1,27 +1,27 @@
 {
-  "name": "sarvam-ai-sdk",
-  "type": "module",
+	"name": "sarvam-ai-sdk",
+	"type": "module",
 	"description": "Sarvam provider support for Vercel's AI-SDK",
-	"version": "0.4.0",
-	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
+	"version": "0.4.1",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist/**/*"
 	],
-  "scripts": {
-    "build": "tsdown",
-    "build:watch": "tsdown --watch",
-    "type-check": "tsc --noEmit",
-    "check": "biome check",
-    "test": "tsx --env-file=.env test/index.ts"
-  },
+	"scripts": {
+		"build": "tsdown",
+		"build:watch": "tsdown --watch",
+		"type-check": "tsc --noEmit",
+		"check": "biome check",
+		"test": "tsx --env-file=.env test/index.ts"
+	},
 	"exports": {
 		"./package.json": "./package.json",
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs",
-			"require": "./dist/index.js"
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
 		}
 	},
 	"dependencies": {

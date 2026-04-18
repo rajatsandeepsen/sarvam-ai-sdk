@@ -87,7 +87,7 @@ export const speechOptionsSchema = z
 /**
  * Configuration settings for Sarvam Text-to-Speech API (bulbul:v3).
  */
-export type SpeechSettings = {
+export type SpeechSettings<T extends SpeechModelId = SpeechModelId> = {
 	/**
 	 * The speaker voice to be used for the output audio.
 	 *
@@ -109,7 +109,9 @@ export type SpeechSettings = {
 	 *
 	 * @default 24000
 	 */
-	speech_sample_rate?: 8000 | 16000 | 22050 | 24000 | 32000 | 44100 | 48000;
+	speech_sample_rate?: z.infer<
+		(typeof speechOptionsSchema)["shape"]["speech_sample_rate"]
+	>;
 
 	/**
 	 * Specifies the audio codec for the output audio file.
