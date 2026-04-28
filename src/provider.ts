@@ -28,6 +28,7 @@ export function createSarvam(options: SarvamProviderSettings = {}) {
 		return {
 			Authorization: `Bearer ${apiKey}`,
 			"api-subscription-key": apiKey,
+			"User-Agent": "sarvam-vercel-sdk",
 			...options.headers,
 		};
 	};

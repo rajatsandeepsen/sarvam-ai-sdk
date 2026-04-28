@@ -76,10 +76,11 @@ export interface SarvamProviderSettings {
 	apiKey?: string;
 
 	/**
-	 * Custom headers to include in the requests.
+	 * Custom headers to include in the requests (merged with defaults; can override e.g. User-Agent).
 	 * @default
 	 * Authorization: `Bearer ${process.env.SARVAM_API_KEY}`,
-	 * "api-subscription-key": process.env.SARVAM_API_KEY
+	 * "api-subscription-key": process.env.SARVAM_API_KEY,
+	 * "User-Agent": "sarvam-vercel-sdk"
 	 */
 	headers?: Record<string, string>;
 

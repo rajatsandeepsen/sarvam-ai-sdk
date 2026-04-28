@@ -1,100 +1,27 @@
+/**
+ * Smoke test for sarvam-ai-sdk (local package name resolves to this repo).
+ * Run: npm test  (loads .env via package.json script)
+ */
 import { generateText } from "ai";
-import { sarvam } from "../src";
-import { readFile, writeFile } from "fs/promises";
-import { z } from "zod";
+import { sarvam } from "sarvam-ai-sdk";
 
-const { text } = await generateText({
-	model: sarvam("sarvam-105b"),
-	prompt: "Translate this to malayalam: 'Keep cooking, guys'",
-});
+if (!process.env.SARVAM_API_KEY?.trim()) {
+	console.error(
+		"Missing SARVAM_API_KEY. Node does not load .env on its own.\n" +
+			"  From the repo root run:  npm test\n" +
+			"  Or:  npx tsx --env-file=.env test/index.ts\n" +
+			"  Or set the variable in your shell:  export SARVAM_API_KEY=...",
+	);
+	process.exit(1);
+}
 
-console.log({ text }); // പാചകം തുടരൂ, സുഹൃത്തുക്കളേ
+console.log("Calling sarvam-30b via AI SDK…");
 
-// throw new Error("Stop here");
-
-import { experimental_generateSpeech as generateSpeech } from "ai";
-
-const { audio } = await generateSpeech({
-	model: sarvam.speech("bulbul:v3", "ml-IN"),
-	text: "പാചകം തുടരൂ, സുഹൃത്തുക്കളേ",
-});
-
-const audioBuffer = Buffer.from(audio.base64, "base64");
-await writeFile("./test/transcript-test.wav", audioBuffer);
-console.log("Speech generated");
-
-import { experimental_transcribe as transcribe } from "ai";
-
-const { text: transcription } = await transcribe({
-	model: sarvam.transcription("saaras:v3"),
-	audio: await readFile("./test/transcript-test.wav"),
-});
-
-console.log({ transcription }); // പാചകം തുടരും സുഹൃത്തുക്കളെ
-
-const { text: translation } = await generateText({
-	model: sarvam.translation("mayura:v1", {
-		from: "ml-IN",
-		to: "en-IN",
-	}),
-	prompt: "ഇതൊക്കെ ശ്രദ്ധിക്കണ്ടേ അംബാനെ?",
-});
-
-console.log({ translation }); // Shouldn't we be careful about this, Ambane?
-
-const { text: transliterate } = await generateText({
-	model: sarvam.transliterate({
-		from: "en-IN",
-		to: "ml-IN",
-	}),
-	prompt: "eda mone, happy alle?",
-});
-
-console.log({ transliterate }); // എടാ മോനെ, ഹാപ്പി അല്ലേ?
-
-const { text: languageIdentification } = await generateText({
-	model: sarvam.languageIdentification(),
-	prompt: "ബുദ്ധിയാണ് സാറേ ഇവൻ്റെ മെയിൻ",
-});
-
-console.log({ languageIdentification }); // ml-IN
-
-import { tool } from "ai";
-
-const { toolResults } = await generateText({
+const { text, usage } = await generateText({
 	model: sarvam("sarvam-30b"),
-	tools: {
-		weather: tool({
-			description: "Get the weather in a location",
-			inputSchema: z.object({
-				location: z.string(),
-			}),
-			execute: async ({ location }) => ({
-		        location,
-		        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-		    }),
-		}),
-	},
-	system: "Your are a helpful AI",
-	prompt: "കൊച്ചിയിലെ കാലാവസ്ഥ എന്താണ്?",
+	prompt: 'Reply with exactly one word: "ok"',
 });
 
-console.log(toolResults);
-
-import { generateObject } from "ai";
-
-const { object } = await generateObject({
-	model: sarvam("sarvam-30b"),
-	schemaName: "Recipe",
-	schemaDescription: "A recipe with a name, ingredients and steps",
-	schema: z.object({
-		recipe: z.object({
-			name: z.string(),
-			ingredients: z.array(z.string()),
-			steps: z.array(z.string()),
-		}),
-	}),
-	prompt: "Generate a South Indian recipe, in Malayalam",
-});
-
-console.log({ object });
+console.log("Response:", text?.slice(0, 500) ?? "(empty)");
+console.log("Usage:", usage);
+console.log("Smoke test passed.");

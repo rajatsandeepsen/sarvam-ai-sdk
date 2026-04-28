@@ -1,0 +1,19 @@
+{
+	"name": "sarvam-published-integration-test",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "tsx --env-file=../.env run-all.mts",
+		"inspect": "npm ls sarvam-ai-sdk ai zod"
+	},
+	"dependencies": {
+		"ai": "^6.0.0",
+		"sarvam-ai-sdk": "latest",
+		"zod": "^4.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.17.0",
+		"tsx": "^4.21.0",
+		"typescript": "^5.6.0"
+	}
+}
