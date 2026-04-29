@@ -47,7 +47,6 @@ export const chatResponseSchema = z.object({
 			logprobs: z.object({}).nullish(),
 			message: z.object({
 				content: z.string().nullish(),
-				reasoning: z.string().nullish(),
 				reasoning_content: z.string().nullish(),
 				refusal: z.string().nullish(),
 				tool_calls: z

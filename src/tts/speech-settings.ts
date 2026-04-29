@@ -87,7 +87,10 @@ export const speechOptionsSchema = z
 /**
  * Configuration settings for Sarvam Text-to-Speech API (bulbul:v3).
  */
-export type SpeechSettings<T extends SpeechModelId = SpeechModelId> = {
+export type SpeechSettings<
+	// biome-ignore lint/correctness/noUnusedVariables: <For Future Models>
+	T extends SpeechModelId = SpeechModelId,
+> = {
 	/**
 	 * The speaker voice to be used for the output audio.
 	 *

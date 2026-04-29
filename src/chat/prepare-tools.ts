@@ -2,6 +2,7 @@ import {
 	type LanguageModelV3FunctionTool,
 	type LanguageModelV3ProviderTool,
 	type LanguageModelV3ToolChoice,
+	type SharedV3Warning,
 	UnsupportedFunctionalityError,
 } from "@ai-sdk/provider";
 
@@ -28,11 +29,11 @@ export function prepareTools({
 		| "none"
 		| "required"
 		| undefined;
-	toolWarnings: Array<{ type: string; tool?: unknown }>;
+	toolWarnings: SharedV3Warning[];
 } {
 	// when the tools array is empty, change it to undefined to prevent errors:
 	const finalTools = tools?.length ? tools : undefined;
-	const toolWarnings: Array<{ type: string; tool?: unknown }> = [];
+	const toolWarnings: SharedV3Warning[] = [];
 
 	if (finalTools == null) {
 		return { tools: undefined, tool_choice: undefined, toolWarnings };
@@ -42,7 +43,7 @@ export function prepareTools({
 
 	for (const tool of finalTools) {
 		if (tool.type === "provider") {
-			toolWarnings.push({ type: "unsupported-tool", tool });
+			toolWarnings.push({ type: "unsupported", feature: tool.name });
 		} else {
 			sarvamTools.push({
 				type: "function",

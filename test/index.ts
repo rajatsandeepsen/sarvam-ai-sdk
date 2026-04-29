@@ -1,7 +1,7 @@
-import { generateText } from "ai";
-import { sarvam } from "../src";
+import { generateText, streamText } from "ai";
 import { readFile, writeFile } from "fs/promises";
 import { z } from "zod";
+import { sarvam } from "./sarvam";
 
 const { text } = await generateText({
 	model: sarvam("sarvam-105b"),
@@ -10,7 +10,15 @@ const { text } = await generateText({
 
 console.log({ text }); // പാചകം തുടരൂ, സുഹൃത്തുക്കളേ
 
-// throw new Error("Stop here");
+const { textStream } = streamText({
+	model: sarvam("sarvam-30b"),
+	system: "You are a pirate. Respond to everything in pirate speak.",
+	prompt: "How do you navigate the seas?",
+});
+
+for await (const textPart of textStream) {
+	console.log(textPart);
+}
 
 import { experimental_generateSpeech as generateSpeech } from "ai";
 
@@ -70,9 +78,9 @@ const { toolResults } = await generateText({
 				location: z.string(),
 			}),
 			execute: async ({ location }) => ({
-		        location,
-		        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-		    }),
+				location,
+				temperature: 72 + Math.floor(Math.random() * 21) - 10,
+			}),
 		}),
 	},
 	system: "Your are a helpful AI",
@@ -98,3 +106,23 @@ const { object } = await generateObject({
 });
 
 console.log({ object });
+
+import { Output } from "ai";
+
+const { output } = await generateText({
+	model: sarvam("sarvam-105b"),
+	output: Output.object({
+		name: "Recipe",
+		description: "A recipe with a name, ingredients and steps",
+		schema: z.object({
+			recipe: z.object({
+				name: z.string(),
+				ingredients: z.array(z.string()),
+				steps: z.array(z.string()),
+			}),
+		}),
+	}),
+	prompt: "Generate a South Indian recipe, in Malayalam",
+});
+
+console.log(output);

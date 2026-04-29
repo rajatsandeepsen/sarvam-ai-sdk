@@ -160,27 +160,54 @@ console.log(result.toolResults);
 ```
 
 ## Generate JSON object
+> NB: `generateObject` is deprecated, use `generateText` with `Output` tool.
 
 ```ts
 import { z } from "zod";
 import { sarvam } from "sarvam-ai-sdk";
-import { generateObject } from 'ai';
+import { generateObject } from "ai";
 
 const { object } = await generateObject({
-  model: sarvam("sarvam-30b"),
-  schemaName: "Recipe",
-  schemaDescription: "A recipe with a name, ingredients and steps",
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
-    }),
-  }),
-  prompt: 'Generate a South Indian recipe, in Malayalam',
+	model: sarvam("sarvam-30b"),
+	schemaName: "Recipe",
+	schemaDescription: "A recipe with a name, ingredients and steps",
+	schema: z.object({
+		recipe: z.object({
+			name: z.string(),
+			ingredients: z.array(z.string()),
+			steps: z.array(z.string()),
+		}),
+	}),
+	prompt: "Generate a South Indian recipe, in Malayalam",
 });
 
 console.log(object);
+```
+
+## Generating Structured Outputs
+
+```ts
+import { z } from "zod";
+import { sarvam } from "sarvam-ai-sdk";
+import { generateText, Output } from "ai";
+
+const { output } = await generateText({
+	model: sarvam("sarvam-105b"),
+	output: Output.object({
+		name: "Recipe",
+		description: "A recipe with a name, ingredients and steps",
+		schema: z.object({
+			recipe: z.object({
+				name: z.string(),
+				ingredients: z.array(z.string()),
+				steps: z.array(z.string()),
+			}),
+		}),
+	}),
+	prompt: "Generate a South Indian recipe, in Malayalam",
+});
+
+console.log(output);
 ```
 
 ## All APIs

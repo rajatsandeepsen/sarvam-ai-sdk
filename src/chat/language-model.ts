@@ -5,8 +5,6 @@ import {
 	type LanguageModelV3Content,
 	type LanguageModelV3FinishReason,
 	type LanguageModelV3StreamPart,
-	type LanguageModelV3Text,
-	type LanguageModelV3ToolCall,
 	type SharedV3Warning,
 } from "@ai-sdk/provider";
 import {
@@ -159,9 +157,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 				...baseArgs,
 				...(toolsArg ?? {}),
 			},
-			warnings: [...warnings, ...(toolsArg?.toolWarnings ?? [])] as Array<
-				{ type: string; setting?: string } | { type: string; tool?: unknown }
-			>,
+			warnings: [...warnings, ...(toolsArg?.toolWarnings ?? [])],
 		};
 	}
 
@@ -173,6 +169,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			stream: false,
 		});
 
+		const isJSON = options.responseFormat?.type === "json";
 		const body = JSON.stringify(args);
 
 		const {
@@ -200,6 +197,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 				message: "No choices returned in response",
 			});
 		}
+		console.log({ isJSON });
 
 		const content: LanguageModelV3Content[] = [];
 
@@ -207,10 +205,10 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			content.push({
 				type: "text",
 				text: choice.message.content,
-			} as LanguageModelV3Text);
+			});
 		}
 
-		const reasoningText = choice.message.reasoning ?? choice.message.reasoning_content;
+		const reasoningText = choice.message.reasoning_content;
 		if (reasoningText) {
 			content.push({
 				type: "reasoning",
@@ -220,26 +218,28 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 
 		// Add tool calls if present
 		if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-			if (options.responseFormat?.type === "json") {
-				content.push({
-					type: "text",
-					text: choice.message.tool_calls[0].function.arguments,
-				} as LanguageModelV3Text);
-			}
-
 			for (const toolCall of choice.message.tool_calls) {
+				if (isJSON)
+					content.push({
+						type: "text",
+						text: toolCall.function.arguments,
+					});
+
 				content.push({
 					type: "tool-call",
 					toolCallId: toolCall.id ?? (this.config.generateId ?? generateId)(),
 					toolName: toolCall.function.name,
 					input: toolCall.function.arguments,
-				} as LanguageModelV3ToolCall);
+				});
 			}
 		}
 
 		return {
 			content,
-			finishReason: { unified: mapFinishReason(choice.finish_reason), raw: choice.finish_reason ?? undefined },
+			finishReason: {
+				unified: isJSON ? "stop" : mapFinishReason(choice.finish_reason),
+				raw: choice.finish_reason ?? undefined,
+			},
 			usage: {
 				inputTokens: {
 					total: response.usage?.prompt_tokens ?? undefined,
@@ -256,7 +256,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			warnings,
 			request: { body },
 			response: { headers: responseHeaders, body: rawResponse },
-		} as unknown as Awaited<ReturnType<LanguageModelV3["doGenerate"]>>;
+		};
 	}
 
 	async doStream(
@@ -467,7 +467,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 												toolCallId: toolCall.id,
 												toolName: toolCall.name,
 												input: toolCall.arguments,
-											} as LanguageModelV3ToolCall);
+											});
 											toolCall.hasFinished = true;
 										}
 									}
@@ -504,7 +504,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 										toolCallId: toolCall.id,
 										toolName: toolCall.name,
 										input: toolCall.arguments,
-									} as LanguageModelV3ToolCall);
+									});
 									toolCall.hasFinished = true;
 								}
 							}

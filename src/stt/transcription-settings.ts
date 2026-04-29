@@ -14,6 +14,7 @@ export const transcriptionProviderOptionsSchema = z.object({
 });
 
 export type TranscriptionSettings<
+	// biome-ignore lint/correctness/noUnusedVariables: <For Future Models>
 	T extends TranscriptionModelId = TranscriptionModelId,
 > = {
 	/**
