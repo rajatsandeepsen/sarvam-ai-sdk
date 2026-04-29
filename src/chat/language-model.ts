@@ -170,7 +170,6 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 		});
 
 		const isJSON = options.responseFormat?.type === "json";
-		const body = JSON.stringify(args);
 
 		const {
 			responseHeaders,
@@ -207,11 +206,10 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 			});
 		}
 
-		const reasoningText = choice.message.reasoning_content;
-		if (reasoningText) {
+		if (choice.message.reasoning_content) {
 			content.push({
 				type: "reasoning",
-				text: reasoningText,
+				text: choice.message.reasoning_content,
 			});
 		}
 
@@ -252,9 +250,25 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 					reasoning: undefined,
 				},
 			},
+			providerMetadata: {
+				sarvam: {
+					system_fingerprint: response.system_fingerprint,
+					service_tier: response.service_tier,
+				},
+			},
 			warnings,
-			request: { body },
-			response: { headers: responseHeaders, body: rawResponse },
+			request: {
+				body: args,
+			},
+			response: {
+				headers: responseHeaders,
+				body: rawResponse,
+				id: response.id ?? undefined,
+				modelId: response.model ?? undefined,
+				timestamp: response.created
+					? new Date(response.created * 1000)
+					: undefined,
+			},
 		};
 	}
 
@@ -262,8 +276,6 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 		options: LanguageModelV3CallOptions,
 	): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
 		const { args } = await this.getArgs({ ...options, stream: true });
-
-		const body = JSON.stringify({ ...args, stream: true });
 
 		const { responseHeaders, value: response } = await postJsonToApi({
 			url: this.config.url({
@@ -519,7 +531,7 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 					},
 				}),
 			),
-			request: { body },
+			request: { body: args },
 			response: { headers: responseHeaders },
 		};
 	}

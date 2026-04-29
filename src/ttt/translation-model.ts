@@ -103,7 +103,11 @@ export class SarvamTranslationModel implements LanguageModelV3 {
 			stream: false,
 		});
 
-		const { value: response } = await postJsonToApi({
+		const {
+			responseHeaders,
+			value: response,
+			rawValue: rawResponse,
+		} = await postJsonToApi({
 			url: this.config.url({
 				path: "/translate",
 				modelId: this.modelId,
@@ -138,6 +142,21 @@ export class SarvamTranslationModel implements LanguageModelV3 {
 					total: undefined,
 					text: undefined,
 					reasoning: undefined,
+				},
+			},
+			request: {
+				body: args,
+			},
+			response: {
+				id: response.request_id ?? undefined,
+				headers: responseHeaders,
+				body: rawResponse,
+			},
+			providerMetadata: {
+				sarvam: {
+					request_id: response.request_id,
+					source_language_code: response.source_language_code,
+					translated_text: response.translated_text,
 				},
 			},
 			warnings: [],

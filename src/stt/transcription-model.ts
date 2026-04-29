@@ -147,7 +147,10 @@ export class SarvamTranscriptionModel implements TranscriptionModelV3 {
 			warnings,
 			providerMetadata: {
 				sarvam: {
-					languageProbability: response.language_probability ?? undefined,
+					request_id: response.request_id,
+					transcript: response.transcript,
+					language_code: response.language_code,
+					language_probability: response.language_probability,
 				},
 			},
 			response: {

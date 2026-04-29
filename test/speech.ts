@@ -8,7 +8,7 @@ const { audio } = await generateSpeech({
 		speaker: "aayan",
 		speech_sample_rate: 24000,
 	}),
-	text: "नमस्ते everyone, आज हम एक comprehensive test करने जा रहे हैं। This is a very important audio file, क्योंकि इसमें hindi और english दोनों languages mix होंगे। हमें test करना है verbatim mode, जहां um, uh, like इत्यादि fillers भी transcribe होंगे। Translation mode में यह पूरा hindi part अंग्रेजी में translate होगा। Transliteration के लिए हमें hindi को roman script में लिखना होगा, जैसे namaste ke bajai namaskar likha jayega। Code-mixing है तो सब भाषाएं mix हो रही हैं naturally जैसे real conversations में होता है। One, two, three numbers, फिर एक दो तीन hindi numbers भी हैं। The transcription API should handle all these variations properly। हर mode अलग तरीके से काम करेगा - कोई translate करेगा, कोई romanize करेगा, कोई सब कुछ verbatim रखेगा। This comprehensive test audio contains multiple sentence structures, different speaking speeds, और mixed language patterns to thoroughly test all transcription features.",
+	text: "नमस्ते everyone। This is a test audio file with hindi और english mix। हमें test करना है verbatim mode, translation, transliteration, और codemix। One two three, एक दो तीन। The API should handle all modes properly।",
 	voice: "manisha2",
 	speed: 1.0,
 	outputFormat: "wav",
