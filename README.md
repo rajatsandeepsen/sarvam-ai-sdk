@@ -18,6 +18,15 @@ npm i sarvam-ai-sdk ai@6
 > [!WARNING]
 > This package only works with Vercel AI-SDK v6, not v7. Make sure to install `ai@6` in your project.
 
+### Version Compatibility
+
+| Sarvam AI SDK Version | Vercel AI SDK Version |
+|-----------------------|-----------------------|
+| 0.4.x (beta)			| 7.x.x (beta)			|
+| 0.3.x (current)		| 6.x.x (current)		|
+| 0.2.x					| 5.x.x					|
+| 0.1.x					| 4.x.x					|
+
 ## Provider Instance
 
 You can import the default provider instance `sarvam` from `sarvam-ai-sdk`:

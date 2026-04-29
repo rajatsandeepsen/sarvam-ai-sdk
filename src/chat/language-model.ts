@@ -197,7 +197,6 @@ export class SarvamChatLanguageModel implements LanguageModelV3 {
 				message: "No choices returned in response",
 			});
 		}
-		console.log({ isJSON });
 
 		const content: LanguageModelV3Content[] = [];
 
