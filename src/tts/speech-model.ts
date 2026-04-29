@@ -126,8 +126,13 @@ export class SarvamSpeechModel implements SpeechModelV3 {
 		return {
 			audio,
 			warnings,
+			providerMetadata: {
+				sarvam: {
+					request_id: value.request_id,
+				},
+			},
 			request: {
-				body: JSON.stringify(requestBody),
+				body: requestBody,
 			},
 			response: {
 				timestamp: currentDate,

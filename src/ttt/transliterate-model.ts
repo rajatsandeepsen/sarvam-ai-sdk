@@ -94,7 +94,11 @@ export class SarvamTransliterateModel implements LanguageModelV3 {
 			stream: false,
 		});
 
-		const { value: response } = await postJsonToApi({
+		const {
+			responseHeaders,
+			value: response,
+			rawValue: rawResponse,
+		} = await postJsonToApi({
 			url: this.config.url({
 				path: "/transliterate",
 				modelId: this.modelId,
@@ -117,7 +121,10 @@ export class SarvamTransliterateModel implements LanguageModelV3 {
 
 		return {
 			content,
-			finishReason: { unified: "stop" as const, raw: undefined },
+			finishReason: {
+				unified: "stop" as const,
+				raw: undefined,
+			},
 			usage: {
 				inputTokens: {
 					total: undefined,
@@ -129,6 +136,21 @@ export class SarvamTransliterateModel implements LanguageModelV3 {
 					total: undefined,
 					text: undefined,
 					reasoning: undefined,
+				},
+			},
+			request: {
+				body: args,
+			},
+			response: {
+				id: response.request_id ?? undefined,
+				headers: responseHeaders,
+				body: rawResponse,
+			},
+			providerMetadata: {
+				sarvam: {
+					request_id: response.request_id,
+					source_language_code: response.source_language_code,
+					transliterated_text: response.transliterated_text,
 				},
 			},
 			warnings: [],
