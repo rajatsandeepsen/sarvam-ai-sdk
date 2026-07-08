@@ -5,18 +5,14 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateImage({
-    model: fireworks.image(
-      'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0',
-    ),
-    prompt: 'A burrito launched through a tunnel',
-    size: '1024x1024',
-    seed: 0,
-    n: 2,
+    model: fireworks.image('accounts/fireworks/models/flux-1-schnell-fp8'),
+    prompt: 'A luminous glass greenhouse floating over a forest at dawn',
+    aspectRatio: '16:9',
+    seed: 42,
     providerOptions: {
       fireworks: {
-        // https://fireworks.ai/models/fireworks/stable-diffusion-xl-1024-v1-0/playground
-        cfg_scale: 10,
-        steps: 30,
+        guidance_scale: 4.5,
+        num_inference_steps: 8,
       } satisfies FireworksImageModelOptions,
     },
   });
