@@ -73,10 +73,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.5`.
+first argument is the model id, e.g. `grok-4.20-non-reasoning`.
 
 ```ts
-const model = xai('grok-4.5');
+const model = xai('grok-4.20-non-reasoning');
 ```
 
 <Note>
@@ -95,7 +95,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.5'),
+  model: xai('grok-4.20-non-reasoning'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -116,7 +116,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.5'),
+  model: xai('grok-4.3'),
   prompt: 'Explain quantum entanglement.',
   providerOptions: {
     xai: { reasoningEffort: 'medium' },
@@ -173,7 +173,7 @@ calling pattern.
 The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4.5');
+const model = xai.responses('grok-4.20-non-reasoning');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -195,7 +195,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-3'),
   messages: [
     {
       role: 'user',
@@ -220,7 +220,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.5'),
+  model: xai('grok-4.3'),
   messages: [
     {
       role: 'user',
@@ -556,19 +556,19 @@ The following provider options are available:
 
 ## Model Capabilities
 
-| Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
-| ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-4.5`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-4.20-reasoning`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-4.20-non-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-1-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-4-1-fast-non-reasoning` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-1`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-fast-reasoning`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-4-fast-non-reasoning`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-code-fast-1`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-mini`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
+| ----------------------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
+| `grok-4.5`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `grok-4.20-reasoning`         | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `grok-4.20-non-reasoning`     | <Check />   | <Check />         | <Check />  | <Check />      | <Cross /> |
+| `grok-4-1-fast-reasoning`     | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `grok-4-1-fast-non-reasoning` | <Check />   | <Check />         | <Check />  | <Check />      | <Cross /> |
+| `grok-4-1`                    | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
+| `grok-4-fast-reasoning`       | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `grok-4-fast-non-reasoning`   | <Check />   | <Check />         | <Check />  | <Check />      | <Cross /> |
+| `grok-code-fast-1`            | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `grok-3`                      | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
+| `grok-3-mini`                 | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -676,9 +676,9 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model     | Language            | Speed               | Output Formats             |
-| --------- | ------------------- | ------------------- | -------------------------- |
-| `default` | <Check size={18} /> | <Check size={18} /> | mp3, wav, pcm, mulaw, alaw |
+| Model     | Language  | Speed     | Output Formats             |
+| --------- | --------- | --------- | -------------------------- |
+| `default` | <Check /> | <Check /> | mp3, wav, pcm, mulaw, alaw |
 
 ## Transcription Models
 
@@ -783,9 +783,9 @@ const result = await transcribe({
 
 ### Model Capabilities
 
-| Model     | Request/Response    | Streaming           | Word Timestamps     | Diarization         | Multichannel        |
-| --------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model     | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
+| --------- | ---------------- | --------- | --------------- | ----------- | ------------ |
+| `default` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
 
 <Note>
   Word timestamps, diarization results, and segments are only returned on the
@@ -920,10 +920,10 @@ const { images } = await generateImage({
 
 ### Image Model Capabilities
 
-| Model                    | Resolution | Aspect Ratios                                                                                               | Image Editing       |
-| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
-| `grok-imagine-image-pro` | `1k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
-| `grok-imagine-image`     | `1k`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+| Model                    | Resolution | Aspect Ratios                                                                                               | Image Editing |
+| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
+| `grok-imagine-image-pro` | `1k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
+| `grok-imagine-image`     | `1k`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
 
 ## Video Models
 
@@ -1269,9 +1269,9 @@ and `resolution` just like text-to-video.
 
 ### Video Model Capabilities
 
-| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video      | Editing             | Extension           | R2V                 |
-| -------------------- | -------- | ------------------------------------------------- | -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video | Editing   | Extension | R2V       |
+| -------------------- | -------- | ------------------------------------------------- | -------------- | -------------- | --------- | --------- | --------- |
+| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check />      | <Check /> | <Check /> | <Check /> |
 
 <Note>
   You can also pass any available provider model ID as a string if needed.
