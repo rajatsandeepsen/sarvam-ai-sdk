@@ -9,10 +9,12 @@ run(async () => {
   const result = streamText({
     model: perplexity('sonar-pro'),
     prompt:
-      'Tell me about the earliest cave drawings known and include images.',
+      'Describe recent Mars rover discoveries and include relevant images.',
     providerOptions: {
       perplexity: {
         return_images: true,
+        image_domain_filter: ['nasa.gov', 'esa.int'],
+        image_format_filter: ['jpeg', 'png'],
       } satisfies PerplexityLanguageModelOptions,
     },
   });
@@ -22,8 +24,8 @@ run(async () => {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
   console.log(
     'Metadata:',
     JSON.stringify((await result.finalStep).providerMetadata, null, 2),

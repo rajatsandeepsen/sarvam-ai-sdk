@@ -9,16 +9,23 @@ run(async () => {
   const result = await generateText({
     model: perplexity('sonar-pro'),
     prompt:
-      'Tell me about the earliest cave drawings known and include images.',
+      'Summarize recent United States federal AI policy updates from official sources.',
     providerOptions: {
       perplexity: {
-        return_images: true,
+        search_domain_filter: [
+          'whitehouse.gov',
+          'congress.gov',
+          'federalregister.gov',
+        ],
+        search_language_filter: ['en'],
+        search_after_date_filter: '1/1/2026',
       } satisfies PerplexityLanguageModelOptions,
     },
   });
 
   console.log(result.text);
   console.log();
+  console.log('Sources:', result.sources);
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
   console.log('Metadata:', result.finalStep.providerMetadata);

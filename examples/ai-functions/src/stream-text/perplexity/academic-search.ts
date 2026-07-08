@@ -9,10 +9,13 @@ run(async () => {
   const result = streamText({
     model: perplexity('sonar-pro'),
     prompt:
-      'Tell me about the earliest cave drawings known and include images.',
+      'What recent peer-reviewed research explains the relationship between sleep and memory consolidation?',
     providerOptions: {
       perplexity: {
-        return_images: true,
+        search_mode: 'academic',
+        web_search_options: {
+          search_context_size: 'low',
+        },
       } satisfies PerplexityLanguageModelOptions,
     },
   });
@@ -22,8 +25,9 @@ run(async () => {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
+  console.log('Sources:', await result.sources);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
   console.log(
     'Metadata:',
     JSON.stringify((await result.finalStep).providerMetadata, null, 2),

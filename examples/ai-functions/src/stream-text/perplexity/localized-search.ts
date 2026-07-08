@@ -8,11 +8,20 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: perplexity('sonar-pro'),
-    prompt:
-      'Tell me about the earliest cave drawings known and include images.',
+    prompt: 'What are notable public transit updates near me this month?',
     providerOptions: {
       perplexity: {
-        return_images: true,
+        web_search_options: {
+          search_context_size: 'medium',
+          search_type: 'fast',
+          user_location: {
+            country: 'US',
+            region: 'California',
+            city: 'San Francisco',
+            latitude: 37.7749,
+            longitude: -122.4194,
+          },
+        },
       } satisfies PerplexityLanguageModelOptions,
     },
   });
@@ -22,8 +31,9 @@ run(async () => {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
+  console.log('Sources:', await result.sources);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
   console.log(
     'Metadata:',
     JSON.stringify((await result.finalStep).providerMetadata, null, 2),

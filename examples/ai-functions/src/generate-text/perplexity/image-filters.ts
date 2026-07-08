@@ -9,10 +9,12 @@ run(async () => {
   const result = await generateText({
     model: perplexity('sonar-pro'),
     prompt:
-      'Tell me about the earliest cave drawings known and include images.',
+      'Describe recent Mars rover discoveries and include relevant images.',
     providerOptions: {
       perplexity: {
         return_images: true,
+        image_domain_filter: ['nasa.gov', 'esa.int'],
+        image_format_filter: ['jpeg', 'png'],
       } satisfies PerplexityLanguageModelOptions,
     },
   });
