@@ -74,9 +74,16 @@ export function wrapMcpTools<
   // Per-tool map form: fill in any tool that the user did not list with the
   // fallback decision. We use `Object.keys(tools)` (not the approval keys) so
   // the result is total over the discovered surface.
-  const filled = {} as Record<keyof TOOLS, unknown>;
+  // `Object.create(null)` gives the result no prototype, and we read the
+  // supplied approval with an own-property check, so tool names that match
+  // inherited object properties (e.g. `constructor`, `toString`, `valueOf`)
+  // are treated as unconfigured and receive the fallback.
+  const filled = Object.create(null) as Record<keyof TOOLS, unknown>;
   for (const name of Object.keys(tools) as Array<keyof TOOLS>) {
-    filled[name] = approval[name] ?? fallback;
+    const configured = Object.prototype.hasOwnProperty.call(approval, name)
+      ? approval[name]
+      : undefined;
+    filled[name] = configured ?? fallback;
   }
 
   // `filled` is a plain per-tool map; cast to the SDK's map arm, which TS

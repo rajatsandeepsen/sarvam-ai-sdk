@@ -156,5 +156,58 @@ describe('wrapMcpTools', () => {
       expect(toolApproval.createIssue).toBe('denied');
       expect(toolApproval.deleteRepo).toBe('denied');
     });
+
+    describe('tool names that match inherited object properties', () => {
+      // These names resolve to values through `Object.prototype`, so a naive
+      // `approval[name]` read would pick up an inherited value instead of
+      // undefined and skip the fallback. They must be treated exactly like any
+      // other unlisted tool.
+      const inheritedTools = {
+        constructor: dummyTool('a tool literally named constructor'),
+        toString: dummyTool('a tool literally named toString'),
+        valueOf: dummyTool('a tool literally named valueOf'),
+        unlistedDelete: dummyTool('an ordinary unlisted tool'),
+        search: dummyTool('an explicitly listed tool'),
+      };
+      type InheritedTools = typeof inheritedTools;
+
+      it('applies the "denied" fallback to unlisted inherited-property names', () => {
+        const { toolApproval } = wrapMcpTools<InheritedTools>(
+          inheritedTools,
+          { search: 'approved' } as never,
+          { default: 'denied' },
+        );
+
+        if (typeof toolApproval === 'function') {
+          throw new Error('expected per-tool object form');
+        }
+
+        expect(toolApproval.constructor).toBe('denied');
+        expect(toolApproval.toString).toBe('denied');
+        expect(toolApproval.valueOf).toBe('denied');
+        // regression guard: an ordinary unlisted tool still gets the fallback
+        expect(toolApproval.unlistedDelete).toBe('denied');
+        // an explicitly listed tool keeps its configured decision
+        expect(toolApproval.search).toBe('approved');
+      });
+
+      it('applies the "user-approval" fallback to unlisted inherited-property names', () => {
+        const { toolApproval } = wrapMcpTools<InheritedTools>(
+          inheritedTools,
+          { search: 'approved' } as never,
+          { default: 'user-approval' },
+        );
+
+        if (typeof toolApproval === 'function') {
+          throw new Error('expected per-tool object form');
+        }
+
+        expect(toolApproval.constructor).toBe('user-approval');
+        expect(toolApproval.toString).toBe('user-approval');
+        expect(toolApproval.valueOf).toBe('user-approval');
+        expect(toolApproval.unlistedDelete).toBe('user-approval');
+        expect(toolApproval.search).toBe('approved');
+      });
+    });
   });
 });
