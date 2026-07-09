@@ -89,6 +89,7 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
 };
 
 const PUBLIC_TOOL_NAMES = Object.keys(PUBLIC_TO_NATIVE);
+const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 
 const NATIVE_TOOL_KINDS: Readonly<
   Record<string, 'readonly' | 'edit' | 'bash'>
@@ -474,7 +475,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     observedTerminalError = normalized;
     emittedTerminalError = true;
-    emit({ type: 'error', error: normalized });
+    turn.emitError({
+      error: normalized,
+      message: 'claude-code terminal error',
+    });
     queryInput.close();
     abortCtl.abort();
   };
@@ -482,10 +486,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     for await (const msg of q as AsyncIterable<ClaudeMessage>) {
       if (abortCtl.signal.aborted) break;
-
-      if (typeof msg.error === 'string' && msg.error.trim()) {
-        observedTerminalError = msg.error.trim();
-      }
 
       const type = msg.type;
 
@@ -506,24 +506,33 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         streamStarted = true;
       }
 
+      if (type === 'system' && msg.subtype === 'api_retry') {
+        if (
+          typeof msg.error_status === 'number' &&
+          UNRECOVERABLE_API_RETRY_STATUSES.has(msg.error_status)
+        ) {
+          emitTerminalError(
+            `HTTP ${msg.error_status}: ${
+              msg.error ?? 'provider request failed'
+            }`,
+          );
+          continue;
+        }
+
+        turn.emitWarning({ message: formatApiRetryWarning(msg) });
+        continue;
+      }
+
+      if (typeof msg.error === 'string' && msg.error.trim()) {
+        observedTerminalError = msg.error.trim();
+      }
+
       if (
         type === 'auth_status' &&
         typeof msg.error === 'string' &&
         msg.error.trim()
       ) {
         emitTerminalError(msg.error);
-        continue;
-      }
-
-      if (
-        type === 'system' &&
-        msg.subtype === 'api_retry' &&
-        typeof msg.error_status === 'number' &&
-        [401, 403, 404].includes(msg.error_status)
-      ) {
-        emitTerminalError(
-          `HTTP ${msg.error_status}: ${msg.error ?? 'provider request failed'}`,
-        );
         continue;
       }
 
@@ -674,7 +683,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } catch (err) {
     if (!(abortCtl.signal.aborted && emittedTerminalError)) {
-      emit({ type: 'error', error: serialiseError(err) });
+      turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
@@ -698,7 +707,10 @@ type ClaudeMessage = {
   type?: string;
   subtype?: string;
   error?: string;
-  error_status?: number;
+  error_status?: number | null;
+  attempt?: number;
+  max_retries?: number;
+  retry_delay_ms?: number;
   patch?: { status?: string; error?: string };
   compact_metadata?: {
     trigger: 'manual' | 'auto';
@@ -720,6 +732,25 @@ type ClaudeMessage = {
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
 };
+
+function formatApiRetryWarning(msg: ClaudeMessage): string {
+  const details: string[] = [];
+  if (typeof msg.attempt === 'number') {
+    const maxRetries =
+      typeof msg.max_retries === 'number' ? `/${msg.max_retries}` : '';
+    details.push(`attempt ${msg.attempt}${maxRetries}`);
+  }
+  if (typeof msg.error_status === 'number') {
+    details.push(`HTTP ${msg.error_status}`);
+  }
+  if (typeof msg.retry_delay_ms === 'number') {
+    details.push(`retrying in ${msg.retry_delay_ms}ms`);
+  }
+  if (msg.error) details.push(msg.error);
+  return details.length > 0
+    ? `Claude Code API retry: ${details.join('; ')}`
+    : 'Claude Code API retry';
+}
 
 function handleStreamEvent(
   event: ClaudeMessage['event'] | undefined,
@@ -953,13 +984,6 @@ function parseArgs(args: string[]): {
     }
   }
   return out;
-}
-
-function serialiseError(err: unknown): unknown {
-  if (err instanceof Error) {
-    return { name: err.name, message: err.message, stack: err.stack };
-  }
-  return err;
 }
 
 function emitFatal(message: string): never {
