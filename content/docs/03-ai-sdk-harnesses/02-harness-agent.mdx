@@ -13,34 +13,7 @@ results while a preconfigured harness powers these results.
 
 Install the core harness package, a harness adapter, and a sandbox provider:
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet
-        text="pnpm add @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="npm install @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="yarn add @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-    <Tab>
-      <Snippet
-        text="bun add @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel"
-        dark
-      />
-    </Tab>
-  </Tabs>
-</div>
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel" />
 
 Bridge-backed harnesses such as Claude Code and Codex require using real network sandbox
 like `@ai-sdk/sandbox-vercel`. Host-runtime harnesses such as Pi can also run with
@@ -345,6 +318,10 @@ console.log(preparation.identity);
 - `id`: optional stable agent identifier.
 - `instructions`: instructions applied once to a fresh session.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
+- `activeTools`: allowlist of built-in and host-executed tools the harness can
+  call.
+- `inactiveTools`: denylist of built-in and host-executed tools the harness
+  cannot call.
 - `skills`: instruction bundles surfaced by the adapter.
 - `permissionMode`: built-in tool permission mode.
 - `toolApproval`: approval status map for host-executed tools.
