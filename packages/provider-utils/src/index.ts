@@ -105,6 +105,7 @@ export {
   type TranscriptionStreamStartFrame as Experimental_TranscriptionStreamStartFrame,
 } from './transcription-stream-envelope';
 export * from './uint8-utils';
+export { validateBaseURL } from './validate-base-url';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
